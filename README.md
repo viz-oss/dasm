@@ -1,10 +1,12 @@
 # DASM - Modularny assembler dla własnych ALU/CPU
 
-v0.1.0
+v0.1.1
 
 ## Struktura
 
 ```
+.agents
+├── skills                    # skille dla agentów AI
 src/
 ├── dasm.py                   # silnik (parser, kodowanie, wyjscie) - niezalezny od architektury
 ├── architectures/

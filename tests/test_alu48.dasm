@@ -1,4 +1,4 @@
-; Przykladowy program testowy dla alu4
+; Przykladowy program testowy dla alu48
 ; Kazda linia = jedna instrukcja testujaca ALU
 ; Format: MNEMONIC A [Cn]
 ;   A  = wartosc 4-bit wpisywana do rejestru A (0-15)
