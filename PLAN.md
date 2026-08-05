@@ -1,0 +1,3 @@
+- wiele targetów (w tym macos w trybie JIT bez podpisu, attiny, atmega, arm, intel)
+- makra umożliwiające dowolną rzecz, nawet mapowanie znaków -> albo wybór notacji AT&T zamiast intel
+- tworzenie swoich układów ma się opierać głównie na zestawianiau czipów 74xxx i tworzenia makr jako instrukcji dla tego układu
