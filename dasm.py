@@ -1,19 +1,43 @@
+#!/usr/bin/env python3
 """
-Glowny silnik assemblera - niezalezny od architektury.
-
-Odpowiada za:
-- wczytanie pliku .asm
-- usuwanie komentarzy / bialych znakow
-- dwuprzebiegowy parser (etykiety -> adresy, potem kodowanie instrukcji)
-- dynamiczne zaladowanie modulu architektury (--arch)
-- generowanie wyjscia: binarne (.bin), tekstowe (.txt z 0/1), oraz format do EEPROM (logisim/srec-like)
+Glowny silnik uruchamiający kompilator.
 """
 
-import importlib
-import re
-import sys
+__version__ = '0.2.0'
+
+#import importlib
+#import re
+#import sys
 from pathlib import Path
+import argparse, sys
 
+from arch import wasm
+
+
+def main(argv = None):
+    parser = argparse.ArgumentParser(description = f"Dasm v{__version__}")
+    parser.add_argument(
+        'source', help = 'input file .dasm'
+    )
+    parser.add_argument(
+        '--arch', required = True, help = 'output architecture'
+    )
+    parser.add_argument(
+        '-o', '--output', help='output file (default: <source name>.<arch extension>)'
+    )
+    args = parser.parse_args(argv)
+
+    source_path = Path(args.source)
+    if not source_path.exists():
+        print(f"File not found: {source_path}", file = sys.stderr)
+        return 1
+
+    source_lines = source_path.read_text(encoding = 'utf-8').splitlines()
+    print(source_lines)
+
+
+
+# DEPRECATED ------------------------------------------------------------------------------
 
 COMMENT_CHAR = ";"
 
@@ -168,7 +192,7 @@ def write_bytes(words: list[int], word_size: int, path: Path):
             f.write(w.to_bytes(byte_count, byteorder="big"))
 
 
-def main(argv=None):
+def main_old(argv=None):
     import argparse
 
     parser = argparse.ArgumentParser(description="Modularny assembler dla wlasnych ALU/CPU")

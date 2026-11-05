@@ -1,6 +1,4 @@
-# DASM - Modularny assembler dla własnych ALU/CPU
-
-v0.1.1
+# DASM
 
 ## Struktura
 
@@ -8,24 +6,18 @@ v0.1.1
 .agents
 ├── skills                    # skille dla agentów AI
 src/
-├── dasm.py                   # silnik (parser, kodowanie, wyjscie) - niezalezny od architektury
-├── architectures/
-│   ├── base.py               # interfejs Architecture - dziedziczy kazdy modul
-│   ├── alu48.py              # modul: 4-bit ALU, 8 operacji
-│   └── ...                   # tu dodajesz alu816.py, cpu816.py itd.
-tests/
-└── test_alu48.asm
+├── dasm.py                   # silnik uruchamiający kompilator
+└── dmac.py                   # silnik makr
 ```
 
-## Uzycie
+## Użycie
 
 ```bash
-python3 dasm.py program.dasm --arch alu48 --format bin
-python3 dasm.py program.dasm --arch alu48 --format hex -o out.hex
-python3 dasm.py program.dasm --arch alu48 --format raw -o out.bin   # plik binarny do programatora EEPROM
-python3 dasm.py program.dasm --arch alu48 --microcode               # tabela mikrokodu dekodera 74181
+python3 dasm.py program.dasm
 ```
 
+---
+Deprecated:
 ## Modul alu48
 
 Format slowa instrukcji (8 bit):
