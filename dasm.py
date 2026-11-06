@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 """
-Glowny silnik uruchamiający kompilator.
+Main launching script.
 """
 
-__version__ = '0.2.0'
+__version__ = '2.0.1'
 
-#import importlib
-#import re
-#import sys
 from pathlib import Path
 import argparse, sys
-
-from arch import wasm
+from syntax import parse
 
 
 def main(argv = None):
     parser = argparse.ArgumentParser(description = f"Dasm v{__version__}")
     parser.add_argument(
-        'source', help = 'input file .dasm'
+        'source', help='input file .dasm'
     )
     parser.add_argument(
-        '--arch', required = True, help = 'output architecture'
+        '--arch', default='arm64', help='output architecture'
     )
     parser.add_argument(
-        '-o', '--output', help='output file (default: <source name>.<arch extension>)'
+        '-o', '--output', help='output file (default: <source name>.o)'
     )
     args = parser.parse_args(argv)
 
@@ -32,9 +28,9 @@ def main(argv = None):
         print(f"File not found: {source_path}", file = sys.stderr)
         return 1
 
-    source_lines = source_path.read_text(encoding = 'utf-8').splitlines()
-    print(source_lines)
-
+    source_text = source_path.read_text(encoding = 'utf-8')
+    print(parse(source_text))
+    return 0
 
 
 # DEPRECATED ------------------------------------------------------------------------------
@@ -66,105 +62,6 @@ def load_architecture(arch_name: str):
         )
 
     return module.ARCHITECTURE()
-
-
-def strip_comment(line: str) -> str:
-    if COMMENT_CHAR in line:
-        line = line[: line.index(COMMENT_CHAR)]
-    return line.strip()
-
-
-def tokenize_line(line: str):
-    """
-    Zwraca (label_or_None, mnemonic_or_None, [operands...])
-    Etykiety musza koncyc sie ':' i byc na poczatku linii, np.:
-        LOOP: ADD 5
-    lub w osobnej linii:
-        LOOP:
-            ADD 5
-    """
-    label = None
-
-    label_match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$", line)
-    if label_match:
-        label = label_match.group(1)
-        line = label_match.group(2).strip()
-
-    if not line:
-        return label, None, []
-
-    parts = re.split(r"[,\s]+", line)
-    mnemonic = parts[0].upper()
-    operands = [p for p in parts[1:] if p]
-
-    return label, mnemonic, operands
-
-
-def assemble(source_lines: list[str], arch) -> list[int]:
-    """
-    Dwuprzebiegowy assembler.
-    Zwraca liste zakodowanych slow (int), jedno na instrukcje.
-    """
-
-    # ---------- PRZEBIEG 1: zbierz etykiety ----------
-    labels = {}
-    address = 0
-    parsed_lines = []  # (line_no, label, mnemonic, operands)
-
-    for line_no, raw_line in enumerate(source_lines, start=1):
-        line = strip_comment(raw_line)
-        if not line:
-            continue
-
-        label, mnemonic, operands = tokenize_line(line)
-
-        if label is not None:
-            if not arch.supports_labels:
-                raise AssemblerError(
-                    f"Architektura '{arch.name}' nie wspiera etykiet ('{label}:')",
-                    line_no,
-                )
-            if label in labels:
-                raise AssemblerError(f"Etykieta '{label}' zdefiniowana wielokrotnie", line_no)
-            labels[label] = address
-
-        if mnemonic is not None:
-            parsed_lines.append((line_no, label, mnemonic, operands))
-            address += 1
-
-    # ---------- PRZEBIEG 2: koduj instrukcje ----------
-    instruction_set = arch.instruction_set()
-    output_words = []
-
-    for idx, (line_no, label, mnemonic, operands) in enumerate(parsed_lines):
-        if mnemonic not in instruction_set:
-            raise AssemblerError(f"Nieznana instrukcja '{mnemonic}'", line_no)
-
-        spec = instruction_set[mnemonic]
-        expected_operand_count = len(spec["operands"])
-
-        # Dla architektur z opcjonalnymi operandami (np. Cn override) tolerujemy
-        # wiecej operandow niz w specyfikacji - walidacja konkretna jest w arch.encode()
-        if len(operands) < expected_operand_count and expected_operand_count > 0:
-            # sprawdzamy tylko minimalna liczbe - arch.encode rzuci blad jesli naprawde za malo
-            pass
-
-        context = {"labels": labels, "address": idx}
-
-        try:
-            word = arch.encode(mnemonic, operands, context)
-        except ValueError as e:
-            raise AssemblerError(str(e), line_no) from e
-
-        if word < 0 or word >= (1 << arch.word_size):
-            raise AssemblerError(
-                f"Zakodowane slowo {word} przekracza word_size={arch.word_size} bitow",
-                line_no,
-            )
-
-        output_words.append(word)
-
-    return output_words
 
 
 def format_output(words: list[int], word_size: int, fmt: str) -> str:

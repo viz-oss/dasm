@@ -1,8 +1,27 @@
+int:
+   value: @64 #komórka w pamięci 64-bitowej może być tablica @64 * 1024
+
+#dziedziczenie
+
+label(foo:int):
+   mov bx, ax
+   
+# rozwija to na:
+
+label:
+   value: int32 # wirtualnie bo odnosi się do gotowego obiektu int
+   mov bx, ax
+
+# moze kożystanie ze stosu to:
+wynik <- label
+
+# w ten sposób mamy za jednym razem dziedziczenie i argumenty funkcji
+
 # małe, duże litery nie mają znaczenia
 
 # grupujemy cokolwiek nawiasami () więc też całą funkcję lub klasę
 
-x: int = ((1 + 1) * (2 + 2)) / 3
+x:int = ((1 + 1) * (2 + 2)) / 3
 
 # właściwie to dowolne nawiasy grupują jak chcemy {[()]} to nie ma znaczenia tak jak duże/małe litery
 # grupowac też można pythonowymi wcięciami ale nawiasy mają priorytet

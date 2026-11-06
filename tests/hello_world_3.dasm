@@ -1,0 +1,7 @@
+from 'sys/darwin' as sys import print as log, exit
+from 'collections' import *
+
+# Program entry
+main:
+    sys.log('Hello, World!\n')
+    sys.exit()
