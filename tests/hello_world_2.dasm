@@ -4,15 +4,15 @@ print(message: str):
     r1 = message           # Pobranie adresu etykiety message
     r2 = message.length    # Długość wiadomości
     r16 = 4                # Numer wywołania systemowego (syscall) dla sys_write to 4
-    sys = 0x80             # Wywołanie kernela macOS
+    sys(0x80)              # Wywołanie kernela macOS
 
 exit:
     # 2. Wywołanie systemowe exit (syscall 1 dla macOS ARM64)
-    x0 = 0                 # Kod powrotu: 0 (sukces)
-    x16 = 1                # Numer wywołania systemowego dla sys_exit to 1
-    sys = 0x80             # Wywołanie kernela macOS
+    r0 = 0                 # Kod powrotu: 0 (sukces)
+    r16 = 1                # Numer wywołania systemowego dla sys_exit to 1
+    sys(0x80)              # Wywołanie kernela macOS
 
 # Program entry
 main:
-    sys.print('Hello, World!\n')
-    sys.exit
+    print('Hello, World!\n')
+    exit

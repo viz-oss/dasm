@@ -7,43 +7,45 @@ __version__ = '2.0.1'
 
 from pathlib import Path
 import argparse, sys
-from syntax import parse
+from syntax import parse, DasmSyntaxError
 
 
 def main(argv = None):
     parser = argparse.ArgumentParser(description = f"Dasm v{__version__}")
     parser.add_argument(
-        'source', help='input file .dasm'
+        'source',
+        help='input file .dasm'
     )
     parser.add_argument(
-        '--arch', default='arm64', help='output architecture'
+        '--arch',
+        default='arm64',
+        help='output architecture'
     )
     parser.add_argument(
-        '-o', '--output', help='output file (default: <source name>.o)'
+        '-o', '--output',
+        help='output file (default: <source name>.o)'
     )
     args = parser.parse_args(argv)
 
     source_path = Path(args.source)
     if not source_path.exists():
-        print(f"File not found: {source_path}", file = sys.stderr)
+        print(f"File not found: {source_path}", file=sys.stderr)
         return 1
 
     source_text = source_path.read_text(encoding = 'utf-8')
-    print(parse(source_text))
+    
+    try:
+        ast = parse(source_text)
+        print(ast)
+    except DasmSyntaxError as e:
+        print(f"Syntax error in {args.source}\n{e}", file=sys.stderr)
+        
     return 0
 
 
 # DEPRECATED ------------------------------------------------------------------------------
 
-COMMENT_CHAR = ";"
 
-
-class AssemblerError(Exception):
-    def __init__(self, message: str, line_no: int = None):
-        self.line_no = line_no
-        if line_no is not None:
-            message = f"Linia {line_no}: {message}"
-        super().__init__(message)
 
 
 def load_architecture(arch_name: str):
