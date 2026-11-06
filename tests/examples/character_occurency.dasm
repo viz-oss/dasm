@@ -1,0 +1,57 @@
+# label może być instrukcją a nie tylko nazwą. np for, if
+
+character_occurency: (
+    text:string
+    char:string
+    count:int = 0
+    for ch in text: (
+        if ch == char count++
+    )
+    ret count
+)
+
+howmany:int = character_occurency = (text = 'hello world', char = 'l')
+howmany:int = jmp character_occurency: (text: 'hello world', char: 'l')
+howmany:int = character_occurency: (text: 'hello world', char: 'l')
+
+character_occurency: (
+    text: string
+    char: string
+    count: int = 0
+    for ch in text: (
+        if ch == char count++
+    )
+    push count
+)
+
+howmany: int = pop character_occurency = (text:str = 'hello world', char:str = 'l')
+
+print = (howmany) # 3
+
+# inna forma akceptuje pythonowe wcięcia i bez return
+
+character_occurency:
+    text: string
+    char: string
+    count: int = 0
+    for ch in text: if ch == char count++
+
+howmany: (count: int) = jmp character_occurency = (text = 'hello world', char = 'l')
+print = (howmany.count) # 3
+
+# a przecinki tez maja sens
+foo, bar = boo = (.....)
+
+# albo wykonanie w jednej linii kilku
+for a in b, if c = 1, foo ++
+  
+# porównywanie
+character_occurency:
+    text: string
+    char: string
+    count: int = 0
+    for ch in text if ch == char count++
+    ==:
+        count == count
+        
+if foo == bar:

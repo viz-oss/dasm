@@ -1,0 +1,68 @@
+# małe, duże litery nie mają znaczenia
+
+# grupujemy cokolwiek nawiasami () więc też całą funkcję lub klasę
+
+x: int = ((1 + 1) * (2 + 2)) / 3
+
+# właściwie to dowolne nawiasy grupują jak chcemy {[()]} to nie ma znaczenia tak jak duże/małe litery
+# grupowac też można pythonowymi wcięciami ale nawiasy mają priorytet
+
+# wszystko opiera się na 2 znakach = :
+
+# 1. znak równości utworzenie obiektu z wynikiem
+# więc możemy zrobić
+
+x: int = 1 # wskaźnik o identyfikatorze x będzie miał wartość 1
+y: int = (1 + 2) # wskaxnik o identyfikatorze y wykona automatycznie działanie + pomiędzy dwoma obiektami int 1 i int 2
+z: int = (ciało funkcji z instrukcjami) analogicznie też wykona
+
+# 2. dwukropek stworzenie definicji (też jako obiekt tak jak klasy w pythonie)
+# wszystko przekazywane jest przez referencję
+# jakikolwiek napis: typ staje się obiektem tego typu, jak w pythonie init, string itp. to obiekty, ale tak naprawdę ten pointer wskazuje na obiekt o takim typie
+
+a: int = 0 # a obiekt typu int
+
+# a zamiast into to może być bezpośredni kod, wtedy nie ejst wykonywany tylko deklarowany
+# dlatego jak chcemy definiowac metody w klasie aby nie zostały odrazu wykonane:
+
+foo: (
+  bar1: (
+    ...
+  )
+  bar2: (
+    ...
+  )
+)
+ 
+# bar1 i bar2 to po prostu kolejne zmienne (pointery) ale nie ma za nimi = więc nie przyjmują wartości i nie wykonują niczego
+
+i zwykła wolnostojąca funkcja niezadeklarowana
+
+bar3: (
+  ...
+  ...
+)
+
+# zmienne wejściowych niejako nie ma - po prostu trzymamy je wewnątrz obiektu więc argumenty są niejako typem
+
+foo: (arg1: str, arg2: str, returns: str) = (
+   ..kod...
+)
+
+# definicje podstawowych typów
+
+a: int = 1
+
+znak równości chyba wrzuca na stos (albo do rejestru?)
+
+int:
+   =:
+       pop r0
+       return r0
+
+# powody dlaczego są błędy w kodzie:
+- twórcy języków każą uczyć się na pamięć jak to działa pod spodem, zasłaniają jedno działanie drugim, drugie trzecim, dlapozornego ułatwienia - potem trzeba pojąć tonę książek żeby to zrozumieć zamiast dać "dotknąć" i zrozumieć zasadę jak to działa
+- programiści unikają bólu i są uczeni unikania/obchodzenia błędów
+
+własciwie wcięcia z pythona nie muszą obowiązywac - są fake - kod wykonuje się po kolei jak w pythonie, robimy wcięcia jak chcemy. po prostu mamy jmp i ret (jump i return) które skaczą do labelek odkładając na stos skoków
+
