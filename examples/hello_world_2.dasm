@@ -15,4 +15,4 @@ exit:
 # Program entry
 main:
     print('Hello, World!\n')
-    exit
+    exit()

@@ -1,0 +1,5 @@
+# comment
+hello:
+    r0 = 1
+    
+hello()

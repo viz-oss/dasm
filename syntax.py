@@ -9,9 +9,14 @@ from abstract import Reg, Int, Mov, Label
 
 
 class DasmSyntaxError(Exception):
-    def __init__(self, line = None, col = None, message = ''):
+    line: int
+    col: int
+    expected: List
+    def __init__(self, line: int = None, col:int  = None, expected: List = None, message: str = ''):
+        self.line, self.col, self.expected = line, col, expected
         msg = ""
-        if line is not None and col is not None: msg += f"Line: {line} Column: {col}\n\n"
+        if line is not None and col is not None: msg += f"Line: {line} Column: {col}\n"
+        if expected is not None: msg += f"Expected: {' or '.join(expected)}\n\n"
         msg += message
         super().__init__(msg)
 
@@ -55,16 +60,27 @@ class ToAst(Transformer):
 
 
 _parser = Lark(GRAMMAR, parser='lalr')
+_TERMINAL_NAMES = {
+    'REG': 'register',
+    'NUMBER': 'number',
+    '_NL': 'end of line',
+    'EQUAL': '"="',
+    'LABEL': 'label'
+}
 
 
 def parse(text: str) -> list:
     if not text.endswith('\n'):
         text += '\n'
     try:
-        ast = ToAst().transform(_parser.parse(text))
+        parsed = _parser.parse(text)
     except (UnexpectedToken, UnexpectedCharacters) as e:
-        raise DasmSyntaxError(e.line, e.column, e.get_context(text))
-    except UnexpectedInput:
-        raise DasmSyntaxError(message=e.get_context(text))
-    return ast
+        expected = getattr(e, 'expected', None) or getattr(e, 'allowed', None) or []
+        names = sorted(_TERMINAL_NAMES.get(t, t) for t in expected)
+        raise DasmSyntaxError(e.line, e.column, names, e.get_context(text))
+    except UnexpectedInput as e:
+        expected = getattr(e, 'expected', None) or getattr(e, 'allowed', None) or []
+        names = sorted(_TERMINAL_NAMES.get(t, t) for t in expected)
+        raise DasmSyntaxError(expected=names, message=e.get_context(text))
+    return ToAst().transform(parsed)
 
