@@ -1,6 +1,9 @@
 """Base file inherited by all architectures"""
 
-class Architecture:
+from abc import ABC, abstractmethod
+
+
+class Architecture(ABC):
     
     def assembly(self, ast: []) -> list[int]:
         output: list[int] = []
@@ -11,3 +14,7 @@ class Architecture:
                 case 'Mov':
                     output += self.mov(instr)
         return output
+
+    @abstractmethod
+    def label(self, instr) -> list[int]:
+        raise NotImplementedError
