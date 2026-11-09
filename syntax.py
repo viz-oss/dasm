@@ -9,14 +9,14 @@ from abstract import Reg, Int, Mov, Label
 
 
 class DasmSyntaxError(Exception):
-    line: int
-    col: int
-    expected: List
-    def __init__(self, line: int = None, col:int  = None, expected: List = None, message: str = ''):
-        self.line, self.col, self.expected = line, col, expected
+    line: int | None
+    col: int | None
+    expected: list[str] | None
+    message: str
+    def __init__(self, line: int | None = None, col: int | None = None, expected: list[str] | None = None, message: str = ''):
+        self.line, self.col, self.expected, self.message = line, col, expected, message
         msg = ""
-        if line is not None and col is not None: msg += f"Line: {line} Column: {col}\n"
-        if expected is not None: msg += f"Expected: {' or '.join(expected)}\n\n"
+        if expected is not None: msg += f"Expected {' or '.join(expected)}\n\n"
         msg += message
         super().__init__(msg)
 
@@ -74,13 +74,15 @@ def parse(text: str) -> list:
         text += '\n'
     try:
         parsed = _parser.parse(text)
-    except (UnexpectedToken, UnexpectedCharacters) as e:
-        expected = getattr(e, 'expected', None) or getattr(e, 'allowed', None) or []
-        names = sorted(_TERMINAL_NAMES.get(t, t) for t in expected)
-        raise DasmSyntaxError(e.line, e.column, names, e.get_context(text))
     except UnexpectedInput as e:
         expected = getattr(e, 'expected', None) or getattr(e, 'allowed', None) or []
         names = sorted(_TERMINAL_NAMES.get(t, t) for t in expected)
-        raise DasmSyntaxError(expected=names, message=e.get_context(text))
+        context = e.get_context(text) if getattr(e, 'pos_in_stream', None) is not None else ''
+        raise DasmSyntaxError(
+            line=getattr(e, 'line', None),
+            col=getattr(e, 'column', None),
+            expected=names,
+            message=context
+        ) from e
     return ToAst().transform(parsed)
 

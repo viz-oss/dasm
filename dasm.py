@@ -11,7 +11,7 @@ from syntax import parse, DasmSyntaxError
 
 
 def main(argv = None):
-    parser = argparse.ArgumentParser(description = f"Dasm v{__version__}")
+    parser = argparse.ArgumentParser(description=f"Dasm v{__version__}")
     parser.add_argument(
         'source',
         help='input file .dasm'
@@ -32,13 +32,14 @@ def main(argv = None):
         print(f"File not found: {source_path}", file=sys.stderr)
         return 1
 
-    source_text = source_path.read_text(encoding = 'utf-8')
+    source_text = source_path.read_text(encoding='utf-8')
     
     try:
         ast = parse(source_text)
         print(ast)
     except DasmSyntaxError as e:
-        print(f"Syntax error in {args.source}\n{e}", file=sys.stderr)
+        print(f"{args.source}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)
+        return 1
         
     return 0
 

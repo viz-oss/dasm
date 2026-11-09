@@ -1,5 +1,2 @@
-# comment
-hello:
+main:
     r0 = 1
-    
-hello()
