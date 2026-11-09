@@ -8,6 +8,7 @@ from pathlib import Path
 import argparse, sys, importlib
 from syntax import parse, DasmSyntaxError
 from arch.arm64 import Arm64Architecture # TODO: use load_module
+from format.mach_o import FormatMacho # TODO: use load_module
 
 
 def load_module(dir: str, name: str):
@@ -27,25 +28,8 @@ def load_module(dir: str, name: str):
     return module.EXPORTS()
 
 
-def format_output(words: list[int], word_size: int, fmt: str) -> str:
-    if fmt == 'bin':
-        return '\n'.join(format(w, f"0{word_size}b") for w in words)
-    if fmt == 'hex':
-        hex_digits = (word_size + 3) // 4
-        return '\n'.join(format(w, f"0{hex_digits}X") for w in words)
-    if fmt == 'dec':
-        return '\n'.join(str(w) for w in words)
-    if fmt == 'logisim':
-        # Format Logisim Evolution "v2.0 raw"
-        hex_digits = (word_size + 3) // 4
-        lines = ['v2.0 raw']
-        lines.extend(format(w, f"0{hex_digits}x") for w in words)
-        return '\n'.join(lines)
-    raise AssemblerError(f"Unknown output format: {fmt}")
-
-
 def write_bytes(words: list[int], word_size: int, path: Path):
-    """Zapisuje slowa jako bajty/raw binary (do EEPROM programmer / .bin)."""
+    """Binary output."""
     byte_count = (word_size + 7) // 8
     with open(path, 'wb') as f:
         for w in words:
@@ -107,13 +91,15 @@ def main(argv = None):
     words = arch.assembly(ast)
 
     # Format output
-    #output = format_output(words, arch.word_size, args.format)
+    format = FormatMacho() # TODO: use load_module
+    output = format.output(words)
 
     # Save binary .o
-
-    # Save additional debug .txt
+    output_path = Path(args.output if args.output else source_path.name.replace('.dasm', '.o'))
+    with open(output_path, 'wb') as f:
+        f.write(output)
     
-
+    # Exit
     return 0
 
 
