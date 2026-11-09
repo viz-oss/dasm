@@ -4,6 +4,7 @@ AST classes
 
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True, slots=True)
 class Reg:
     """Virtual registry
@@ -11,10 +12,12 @@ class Reg:
     """
     n: int
 
+
 @dataclass(frozen=True, slots=True)
 class Int:
     """Integer number (undefined abstract range)"""
     value: int
+
 
 @dataclass(frozen=True, slots=True)
 class Mov:
@@ -23,6 +26,13 @@ class Mov:
     """
     to: Reg
     fr: Reg | Int
+    
+    def isReg(self):
+        return isinstance(self.fr, Reg)
+
+    def isInt(self):
+        return isinstance(self.fr, Int)
+
 
 @dataclass(frozen=True, slots=True)
 class Label:
