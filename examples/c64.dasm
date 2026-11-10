@@ -1,0 +1,8 @@
+; Program: Zmiana koloru ramki i tła w C64
+; Adres startowy w pamięci RAM: $1000 (4096 dziesiętnie)
+
+start:
+  r0 = 2          ; lda #$02  ; Załaduj do akumulatora (A) wartość $02 (kolor czerwony)
+  @0xD020 = r0    ; sta $D020 ; Zapisz wartość z akumulatora pod adres rejestru ramki (Border Color)
+  @0xD021 = r0    ; sta $D021 ; Zapisz tę samą wartość pod adres rejestru tła (Background Color)
+  exit()          ; rts       ; Return from Subroutine – koniec programu, powrót do BASIC-a

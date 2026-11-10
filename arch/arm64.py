@@ -46,4 +46,11 @@ class Arm64Architecture(Architecture):
         assert len(bits) == 32, len(bits)
         return int(bits, 2)
 
+    def bytes(self, instr) -> list[int]:
+        return []
+
+    def text(self, instr) -> list[int]:
+        return []
+
+
 EXPORTS = Arm64Architecture

@@ -18,8 +18,20 @@ class Architecture(ABC):
                     self.labels[instr.name] = len(output)
                 case 'Mov':
                     output += self.mov(instr)
+                case 'Bytes':
+                    output += self.bytes(instr)
+                case 'Text':
+                    output += self.text(instr)
         return output
 
     @abstractmethod
     def mov(self, instr) -> list[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def bytes(self, instr) -> list[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def text(self, instr) -> list[int]:
         raise NotImplementedError

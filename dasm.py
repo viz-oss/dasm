@@ -6,7 +6,8 @@ __version__ = '2.0.2'
 
 from pathlib import Path
 import argparse, sys, importlib
-from syntax import parse, DasmSyntaxError
+from lang.syntax import parse
+from lang.exceptions import DasmSyntaxError
 
 
 def load_module(dir: str, name: str):
@@ -40,7 +41,7 @@ def main(argv = None):
     )
     parser.add_argument(
         '--format',
-        choices=['bin', 'elf', 'hex', 'macho'],
+        choices=['bin', 'elf', 'hex', 'macho', 'prg'],
         default='macho',
         help='output format',
     )
@@ -63,10 +64,11 @@ def main(argv = None):
     source_text = source_path.read_text(encoding='utf-8')
 
     # Parse
+    print("Parsing...", end='')
     try:
-        print("Parsing...", end='')
         ast = parse(source_text)
     except DasmSyntaxError as e:
+        print('\n')
         print(f"{args.source}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)
         return 1
     print("OK")

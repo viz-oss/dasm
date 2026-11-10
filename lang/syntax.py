@@ -4,21 +4,9 @@ Lark parser
 
 import sys
 from lark import Lark, Transformer
-from lark.exceptions import UnexpectedInput, UnexpectedToken, UnexpectedCharacters
-from abstract import Reg, Int, Mov, Label
-
-
-class DasmSyntaxError(Exception):
-    line: int | None
-    col: int | None
-    expected: list[str] | None
-    message: str
-    def __init__(self, line: int | None = None, col: int | None = None, expected: list[str] | None = None, message: str = ''):
-        self.line, self.col, self.expected, self.message = line, col, expected, message
-        msg = ""
-        if expected is not None: msg += f"Expected {' or '.join(expected)}\n\n"
-        msg += message
-        super().__init__(msg)
+from lark.exceptions import UnexpectedInput, VisitError
+from .abstract import Reg, Int, Mov, Label, Bytes, Text
+from .exceptions import DasmSyntaxError
 
 
 GRAMMAR = r'''
@@ -26,12 +14,19 @@ start: (line? _NL)*
 
 ?line: LABEL
      | statement
+     | directive
 
 statement: REG "=" (REG | NUMBER)
+directive: DIRECTIVE value_list
+         | DIRECTIVE STRING
+
+value_list: NUMBER ("," NUMBER)*
 
 REG: /r\d+/
 LABEL.2: /[A-Za-z_]\w*:/
 NUMBER: /-?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|\d+(?:_\d+)*)/
+DIRECTIVE: /\.[a-z]\w*/
+STRING: /"(\\.|[^"\\\r\n])*"/
 COMMENT: /;[^\r\n]*|#[^\r\n]*|\/\/[^\r\n]*/
 WHITESPACE: /[ \t]+/
 _NL: /(\r?\n)+/
@@ -41,7 +36,21 @@ _NL: /(\r?\n)+/
 '''
 
 
+_BYTES_DIRECTIVES = {'.b': 1, '.b8': 1, '.b16': 2, '.b32': 4, '.b64': 8}
+_TERMINAL_NAMES = {
+    'REG': 'register',
+    'NUMBER': 'number',
+    '_NL': 'end of line',
+    'EQUAL': '"="',
+    'LABEL': 'label'
+}
+
+
 class ToAst(Transformer):
+
+    def start(self, children):
+        return list(children)
+
     def REG(self, tok):
         return Reg(int(tok[1:]))
 
@@ -55,18 +64,22 @@ class ToAst(Transformer):
         to, fr = children
         return Mov(to, fr)
 
-    def start(self, children):
-        return list(children)
+    def value_list(self, c):
+        return tuple(c)
+
+    def STRING(self, tok):
+        return ast.literal_eval(str(tok))
+
+    def directive(self, c):
+        name, arg = c
+        if isinstance(arg, tuple) and name in _BYTES_DIRECTIVES:
+            return Bytes(_BYTES_DIRECTIVES[name], arg)
+        if isinstance(arg, str) and name == '.text':
+            return Text(arg)
+        raise DasmSyntaxError(name.line, name.column, message=f"unknown or misused directive {name}")
 
 
 _parser = Lark(GRAMMAR, parser='lalr')
-_TERMINAL_NAMES = {
-    'REG': 'register',
-    'NUMBER': 'number',
-    '_NL': 'end of line',
-    'EQUAL': '"="',
-    'LABEL': 'label'
-}
 
 
 def parse(text: str) -> list:
@@ -84,4 +97,9 @@ def parse(text: str) -> list:
             expected=names,
             message=context
         ) from e
-    return ToAst().transform(parsed)
+    try:
+        return ToAst().transform(parsed)
+    except VisitError as e:
+        if isinstance(e.orig_exc, DasmSyntaxError):
+            raise e.orig_exc from None
+        raise
