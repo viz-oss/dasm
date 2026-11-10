@@ -1,5 +1,5 @@
-from 'sys/darwin' as sys import print as log, exit
-from 'collections' import *
+.include 'sys/darwin/print'
+.include 'sys/darwin/exit'
 
 # Program entry
 main:

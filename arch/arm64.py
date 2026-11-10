@@ -1,13 +1,10 @@
-"""Architecture: arm64"""
+"""Architecture: Arm64"""
 
 import operator
 from arch.base import Architecture
 
 
 class Arm64Architecture(Architecture):
-    
-    def label(self, instr) -> list[int]:
-        return []
     
     def mov(self, instr) -> list[int]:
         # Register to register
@@ -48,3 +45,5 @@ class Arm64Architecture(Architecture):
         )
         assert len(bits) == 32, len(bits)
         return int(bits, 2)
+
+EXPORTS = Arm64Architecture

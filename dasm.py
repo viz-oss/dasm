@@ -7,8 +7,6 @@ __version__ = '2.0.2'
 from pathlib import Path
 import argparse, sys, importlib
 from syntax import parse, DasmSyntaxError
-from arch.arm64 import Arm64Architecture # TODO: use load_module
-from format.mach_o import FormatMacho # TODO: use load_module
 
 
 def load_module(dir: str, name: str):
@@ -28,14 +26,6 @@ def load_module(dir: str, name: str):
     return module.EXPORTS()
 
 
-def write_bytes(words: list[int], word_size: int, path: Path):
-    """Binary output."""
-    byte_count = (word_size + 7) // 8
-    with open(path, 'wb') as f:
-        for w in words:
-            f.write(w.to_bytes(byte_count, byteorder='big'))
-
-
 def main(argv = None):
     parser = argparse.ArgumentParser(description=f"dasm v{__version__}")
     parser.add_argument(
@@ -44,14 +34,15 @@ def main(argv = None):
     )
     parser.add_argument(
         '--arch',
+        choices=['alu48', 'arm64', 'mos', 'wasm', 'x86'],
         default='arm64',
         help='output architecture'
     )
     parser.add_argument(
         '--format',
-        choices=['mach-o'],
-        default='mach-o',
-        help='output format (default: Mach-o)',
+        choices=['bin', 'elf', 'hex', 'macho'],
+        default='macho',
+        help='output format',
     )
     parser.add_argument(
         '-o', '--output',
@@ -78,24 +69,19 @@ def main(argv = None):
         return 1
 
     # Load architecture
-    """
-    try:
-        arch = load_module('arch', args.arch)
-    except DasmSyntaxError as e:
-        print(f"Architecture error: {e}", file=sys.stderr)
-        return 1
-    """
-    arch = Arm64Architecture() # TODO: use load_module
+    arch = load_module('arch', args.arch)
 
     # Assembly
     words = arch.assembly(ast)
 
     # Format output
-    format = FormatMacho() # TODO: use load_module
+    format = load_module('format', args.format)
     output = format.output(words)
 
-    # Save binary .o
-    output_path = Path(args.output if args.output else source_path.name.replace('.dasm', '.o'))
+    # Save output file
+    output_name = args.output if args.output else source_path.name.replace('.dasm', '.' + format.ext)
+    if not output_name.endswith('.' + format.ext): output_name += '.' + format.ext
+    output_path = Path(output_name)
     with open(output_path, 'wb') as f:
         f.write(output)
     

@@ -35,6 +35,9 @@ S_ATTR_SOME_INSTRUCTIONS = 0x00000400
 
 class FormatMacho(Format):
 
+    def __init__(self):
+        self.ext = 'o'
+
     def _mach_header_64(self,
         ncmds: int,               # Number of commands
         sizeofcmds: int           # Total size of all commands
@@ -149,3 +152,5 @@ class FormatMacho(Format):
         header = self._mach_header_64(ncmds, sizeofcmds)
                 
         return header + lc_seg + lc_symtab + text_blob + strtab
+
+EXPORTS = FormatMacho
