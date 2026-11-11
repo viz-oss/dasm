@@ -6,6 +6,7 @@ __version__ = '2.0.2'
 
 from pathlib import Path
 import argparse, sys
+from lang.preprocess import preprocess
 from lang.syntax import parse
 from lang.exceptions import DasmSyntaxError
 import bootstrap.settings
@@ -73,7 +74,8 @@ def main(argv = None):
     # Parse
     print("Parsing...", end='')
     try:
-        ast = parse(source_text, settings['env'], settings['paths'])
+        processed_text = preprocess(source_text)
+        ast = parse(processed_text, settings['env'], settings['paths'])
     except DasmSyntaxError as e:
         print('\n')
         print(f"{options['source']}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)
