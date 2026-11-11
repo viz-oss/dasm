@@ -1,7 +1,7 @@
 """Unit tests for an Arm64 architecture"""
 
 import pytest
-from abstract import Label, Mov, Reg, Int
+from lang.abstract import Label, Mov, Reg, Int
 from arch.arm64 import Arm64Architecture
 
 

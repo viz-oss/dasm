@@ -51,5 +51,12 @@ class Arm64Architecture(Architecture):
         assert len(bits) == 32, len(bits)
         return int(bits, 2)
 
+    def call(self, instr) -> list[int]:
+        """Encode a call instruction.
+
+        ARM64 call/label encoding is not implemented yet.
+        """
+        raise NotImplementedError(instr)
+
 
 EXPORTS = Arm64Architecture

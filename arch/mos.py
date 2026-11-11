@@ -1,39 +1,39 @@
 """
 Architecture: MOS 6502/6510 for C=64
 
-Przesyłanie danych    
+Data transfer    
 LDA, LDX, LDY
 STA, STX, STY
-Ładowanie danych z pamięci do rejestrów (Load) oraz zapisywanie zawartości rejestrów do pamięci (Store).
+Loading data from memory into registers (Load) and storing register contents in memory (Store).
 
-Operacje arytmetyczne    
+Arithmetic operations    
 ADC, SBC
-Dodawanie z przeniesieniem (Add with Carry) oraz odejmowanie z pożyczką (Subtract with Borrow).
+Addition with carry (Add with Carry) and subtraction with borrow (Subtract with Borrow).
 
-Operacje logiczne i bitowe
+Logical and bitwise operations
 AND, ORA, EOR, BIT
-Koniunkcja, alternatywa, alternatywa wykluczająca (XOR) oraz testowanie bitów.
+AND, OR, exclusive OR (XOR), and bit testing.
 
-Inkrementacja i dekrementacja    
+Increment and decrement    
 INC, DEC
 INX, INY, DEX, DEY
-Zwiększanie lub zmniejszanie o 1 wartości w pamięci lub w rejestrach indeksowych X i Y.
+Increasing or decreasing by 1 the value in memory or in the X and Y index registers.
 
-Skoki bezwarunkowe i podprogramy
+Unconditional jumps and subroutines
 JMP, JSR, RTS
-Skok pod wskazany adres (Jump), skok do podprogramu z zapamiętaniem adresu powrotu (Jump to Subroutine) oraz powrót z podprogramu (Return from Subroutine).
+Jumping to a specified address (Jump), jumping to a subroutine while preserving the return address (Jump to Subroutine), and returning from a subroutine (Return from Subroutine).
 
-Skoki warunkowe (gałęzie)
+Conditional jumps (branches)
 BEQ, BNE, BMI, BPL, BCS, BCC
-Skoki względne zależne od stanu flag (np. skok, jeśli wynik poprzedniej operacji wynosi zero – BEQ).
+Relative jumps based on the state of the flags (for example, jumping if the result of the previous operation is zero – BEQ).
 
-Operacje na stosie
+Stack operations
 PHA, PLA, PHP, PLP
-Odkładanie (Push) i zdejmowanie (Pull) akumulatora lub rejestru flag ze stosu systemowego.
+Pushing the accumulator or flag register onto the system stack and pulling it back.
 
-Sterowanie procesorem
+Processor control
 NOP, SEC, CLC, SEI, CLI
-Instrukcja pusta (No Operation), ustawianie lub czyszczenie flag (np. przeniesienia czy przerwań).
+No operation (No Operation), setting or clearing flags (for example, carry or interrupt flags).
 """
 
 from arch.base import Architecture

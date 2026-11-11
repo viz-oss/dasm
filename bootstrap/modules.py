@@ -8,7 +8,7 @@ from lang.exceptions import DasmSyntaxError
 SAFE_IDENTIFIER = re.compile(r"^[a-zA-Z0-9_]+$")
 def _validate_input(value: str, field_name: str):
     if not SAFE_IDENTIFIER.match(value):
-        raise DasmSyntaxError(f"Bad name for {field_name}: '{value}'. Only letters, numbers, and underscores are allowed.")
+        raise DasmSyntaxError(message=f"Bad name for {field_name}: '{value}'. Only letters, numbers, and underscores are allowed.")
 
 
 @lru_cache(maxsize=32)
@@ -28,15 +28,15 @@ def load_module(dir: str, name: str):
     try:
         module = _cached_import(module_path)
     except ModuleNotFoundError as e:
-        raise DasmSyntaxError(f"Module '{dir}/{name}' not found ") from e
+        raise DasmSyntaxError(message=f"Module '{dir}/{name}' not found ") from e
     except Exception as e:
-        raise DasmSyntaxError(f"Error importing module '{dir}/{name}': {e}") from e
+        raise DasmSyntaxError(message=f"Error importing module '{dir}/{name}': {e}") from e
 
     # Validate EXPORTS
     if not hasattr(module, 'EXPORTS'):
-        raise DasmSyntaxError(f"Module {dir}/{name}.py does not contain EXPORTS")
+        raise DasmSyntaxError(message=f"Module {dir}/{name}.py does not contain EXPORTS")
     exports_target = module.EXPORTS
     if not callable(exports_target):
-        raise DasmSyntaxError(f"The EXPORTS attribute in module '{dir}/{name}.py' must be a function or a class.")
+        raise DasmSyntaxError(message=f"The EXPORTS attribute in module '{dir}/{name}.py' must be a function or a class.")
 
     return exports_target()
