@@ -9,6 +9,7 @@ class FormatPrg(FormatBin):
         self.ext = 'prg'
         
     def _header(self) -> list[int]:
+        # 0x0801 (default BASIC starting address allows launch by 'RUN')
         return [0x01, 0x08]
         
     def _basic_stub(self) -> list[int]:

@@ -6,17 +6,22 @@ from arch.base import Architecture
 
 class Arm64Architecture(Architecture):
     
+    def __init__(self):
+        super().__init__()
+        self.endian = 'little'
+
     def mov(self, instr) -> list[int]:
-        # Register to register
-        if instr.fromReg():
-            return self._orr(instr)
-        # Constant number to register
-        elif instr.fromInt():
-            # 16-bit constants
-            if 0 <= instr.fr.value < 0x10000:
-                return [self._movz(instr.to.n, instr.fr.value)]
-            # Above (movz + movk)
-                #return [self._movz(..., ...) , self._movk(..., ...)]
+        if instr.to_reg():
+            # Register to register
+            if instr.fr_reg():
+                return self._orr(instr)
+            # Constant number to register
+            elif instr.fr_int():
+                # 16-bit constants
+                if 0 <= instr.fr.value < 0x10000:
+                    return [self._movz(instr.to.n, instr.fr.value)]
+                # Above (movz + movk)
+                    #return [self._movz(..., ...) , self._movk(..., ...)]
         raise NotImplementedError(instr)
 
     def _movz(self,

@@ -7,7 +7,7 @@ class Architecture(ABC):
 
     def __init__(self):
         self.labels = {}
-#        self.endian = ''
+        self.endian: Literal['little', 'big'] | None = None
     
     def assembly(self, ast: []) -> list[int]:
         output: list[int] = []

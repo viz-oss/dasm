@@ -21,19 +21,37 @@ class Int:
 
 
 @dataclass(frozen=True, slots=True)
+class Ptr:
+    """@label or @<number>
+
+    Reference to memory. The target is a symbol name or a literal address.
+    """
+    target: str | Int
+
+
+@dataclass(frozen=True, slots=True)
 class Mov:
-    """r<to> = <fr>
+    """<to> = <fr>
     
     Assign
     """
-    to: Reg
-    fr: Reg | Int
+    to: Reg | Ptr
+    fr: Reg | Int | Ptr
     
-    def fromReg(self):
+    def to_reg(self):
+        return isinstance(self.to, Reg)
+
+    def to_ptr(self):
+        return isinstance(self.to, Ptr)
+
+    def fr_reg(self):
         return isinstance(self.fr, Reg)
 
-    def fromInt(self):
+    def fr_int(self):
         return isinstance(self.fr, Int)
+
+    def fr_ptr(self):
+        return isinstance(self.fr, Ptr)
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,10 +2,10 @@
 Lark parser
 """
 
-import sys
+import ast
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
-from .abstract import Reg, Int, Mov, Label, Bytes, Text
+from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr
 from .exceptions import DasmSyntaxError
 
 
@@ -16,7 +16,8 @@ start: (line? _NL)*
      | statement
      | directive
 
-statement: REG "=" (REG | NUMBER)
+statement: REG "=" (REG | NUMBER | ptr)
+         | ptr "=" REG
 directive: DIRECTIVE value_list
          | DIRECTIVE STRING
 
@@ -26,6 +27,8 @@ REG: /r\d+/
 LABEL.2: /[A-Za-z_]\w*:/
 NUMBER: /-?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|\d+(?:_\d+)*)/
 DIRECTIVE: /\.[a-z]\w*/
+ptr: "@" (NAME | NUMBER)
+NAME: /[A-Za-z_]\w*/
 STRING: /"(\\.|[^"\\\r\n])*"/
 COMMENT: /;[^\r\n]*|#[^\r\n]*|\/\/[^\r\n]*/
 WHITESPACE: /[ \t]+/
@@ -42,7 +45,9 @@ _TERMINAL_NAMES = {
     'NUMBER': 'number',
     '_NL': 'end of line',
     'EQUAL': '"="',
-    'LABEL': 'label'
+    'LABEL': 'label',
+    'NAME': 'name',
+    'AT': '"@"',
 }
 
 
@@ -69,6 +74,12 @@ class ToAst(Transformer):
 
     def STRING(self, tok):
         return ast.literal_eval(str(tok))
+        
+    def NAME(self, tok):
+        return str(tok)
+
+    def ptr(self, c):
+        return Ptr(c[0])
 
     def directive(self, c):
         name, arg = c
@@ -102,4 +113,6 @@ def parse(text: str) -> list:
     except VisitError as e:
         if isinstance(e.orig_exc, DasmSyntaxError):
             raise e.orig_exc from None
-        raise
+        tok = getattr(e.obj, 'line', None)
+        raise DasmSyntaxError(message=f"invalid literal: {e.orig_exc}") from e
+    
