@@ -74,8 +74,8 @@ def main(argv = None):
     # Parse
     print("Parsing...", end='')
     try:
-        processed_text = preprocess(source_text)
-        ast = parse(processed_text, settings['env'], settings['paths'])
+        processed_text = preprocess(source_text, settings['env'])
+        ast = parse(processed_text)
     except DasmSyntaxError as e:
         print('\n')
         print(f"{options['source']}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)

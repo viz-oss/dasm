@@ -110,7 +110,7 @@ class ToAst(Transformer):
 _parser = Lark(GRAMMAR, parser='lalr')
 
 
-def parse(text: str, env: Dict, paths: Dict) -> list:
+def parse(text: str) -> list:
     if not text.endswith('\n'):
         text += '\n'
     try:

@@ -13,9 +13,9 @@
 .set VIC_BG_COLOR = 0xD021
 
 start:
-  r0 = 2                ; lda #$02
+  r0 = 5                ; lda #$02
   VIC_FRAME_COLOR = r0  ; sta $d020 (kolor ramki)
-  r0 = 3                ; lda #$03
+  r0 = 10               ; lda #$03
   VIC_BG_COLOR = r0     ; sta $d021 (kolor tła)
   .b 0x60               ; rts (return to os)
 
