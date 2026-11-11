@@ -5,27 +5,11 @@ Main launching script.
 __version__ = '2.0.2'
 
 from pathlib import Path
-import argparse, sys, importlib
+import argparse, sys
 from lang.syntax import parse
 from lang.exceptions import DasmSyntaxError
 import bootstrap.settings
-
-
-def load_module(dir: str, name: str):
-    """Dynamically loads the module from <dir>/<name>.py"""
-    try:
-        module = importlib.import_module(f"{dir}.{name}")
-    except ModuleNotFoundError as e:
-        raise DasmSyntaxError(
-            f"Module '{dir}/{name}' not found "
-        ) from e
-
-    if not hasattr(module, "EXPORTS"):
-        raise DasmSyntaxError(
-            f"Module {dir}/{name}.py does not contain EXPORTS"
-        )
-
-    return module.EXPORTS()
+from bootstrap.modules import load_module
 
 
 def main(argv = None):
@@ -69,7 +53,7 @@ def main(argv = None):
         'format': 'macho',
         'debug' : False,
         # Read from *.toml
-        **settings.get('dasm', {}).get('options', {}),
+        **settings.get('options', {}),
         # Commandline
         'source': args.source,
         'output': args.output,
@@ -79,12 +63,6 @@ def main(argv = None):
     if args.format: options['format'] = args.format
     if args.debug: options['debug'] = args.debug
     
-    # Env variables
-    env = {**settings.get('dasm', {}).get('env', {})}
-    
-    # Import paths
-    paths = [*settings.get('dasm', {}).get('imports', [])]
-
     # Read source file
     source_path = Path(options['source'])
     if not source_path.exists():
@@ -95,7 +73,7 @@ def main(argv = None):
     # Parse
     print("Parsing...", end='')
     try:
-        ast = parse(source_text, env, paths)
+        ast = parse(source_text, settings['env'], settings['paths'])
     except DasmSyntaxError as e:
         print('\n')
         print(f"{options['source']}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)

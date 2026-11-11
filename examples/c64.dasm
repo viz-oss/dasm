@@ -1,24 +1,28 @@
 ; Program: Zmiana koloru ramki i tła w C64
-;.include 'sys/c64/vic'
-;.const VIC_FRAME_COLOR = 0xD020
-;.const VIC_BG_COLOR = 0xD021
-
-; vic_frame_color(color: int):
-;   r0 = color
-;   VIC_FRAME_COLOR = r0
-
-; vic_bg_color(color: int):
-;   r0 = color
-;   VIC_BG_COLOR = r0
-
+;.import 'sys/c64/vic'
 ; start:
 ;   vic_frame_color(13)
 ;   vic_bg_color(14)
+;   start()
+
+; Może takie coś co pomoże w potokowaniu
+; 0xD020 = r0 = 13
+; 0xD021 = r0 = 14
+
+;.set VIC_FRAME_COLOR = 0xD020
+;.set VIC_BG_COLOR = 0xD021
+
+;start:
+;  r0 = 14               ; lda #$02
+;  VIC_FRAME_COLOR = r0  ; sta $d020 (kolor ramki)
+;  r0 = 15               ; lda #$03
+;  VIC_BG_COLOR = r0     ; sta $d021 (kolor tła)
+;  start()               ; jmp $080d TODO: jeszcze $080d jest na sztywno, czeka na tablice relokacji
 
 start:
-  r0 = 13      ; lda #$02
+  r0 = 14      ; lda #$02
   0xD020 = r0  ; sta $d020 (kolor ramki)
-  r0 = 14      ; lda #$03
+  r0 = 15      ; lda #$03
   0xD021 = r0  ; sta $d021 (kolor tła)
   start()      ; jmp $080d
   ;.b 0x4C, 0x0D, 0x08             ; jmp $080d

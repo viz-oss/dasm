@@ -1,9 +1,10 @@
 [dasm.options]
 arch = "mos"
 format = "prg"
-source = ""
-output = ""
 debug = false
 
 [dasm.env]
 OS = "c64"
+
+[dasm.imports]
+paths = [".."]
