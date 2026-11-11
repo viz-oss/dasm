@@ -1,4 +1,40 @@
-"""Architecture: MOS 6502/6510 for C=64"""
+"""
+Architecture: MOS 6502/6510 for C=64
+
+Przesyłanie danych    
+LDA, LDX, LDY
+STA, STX, STY
+Ładowanie danych z pamięci do rejestrów (Load) oraz zapisywanie zawartości rejestrów do pamięci (Store).
+
+Operacje arytmetyczne    
+ADC, SBC
+Dodawanie z przeniesieniem (Add with Carry) oraz odejmowanie z pożyczką (Subtract with Borrow).
+
+Operacje logiczne i bitowe
+AND, ORA, EOR, BIT
+Koniunkcja, alternatywa, alternatywa wykluczająca (XOR) oraz testowanie bitów.
+
+Inkrementacja i dekrementacja    
+INC, DEC
+INX, INY, DEX, DEY
+Zwiększanie lub zmniejszanie o 1 wartości w pamięci lub w rejestrach indeksowych X i Y.
+
+Skoki bezwarunkowe i podprogramy
+JMP, JSR, RTS
+Skok pod wskazany adres (Jump), skok do podprogramu z zapamiętaniem adresu powrotu (Jump to Subroutine) oraz powrót z podprogramu (Return from Subroutine).
+
+Skoki warunkowe (gałęzie)
+BEQ, BNE, BMI, BPL, BCS, BCC
+Skoki względne zależne od stanu flag (np. skok, jeśli wynik poprzedniej operacji wynosi zero – BEQ).
+
+Operacje na stosie
+PHA, PLA, PHP, PLP
+Odkładanie (Push) i zdejmowanie (Pull) akumulatora lub rejestru flag ze stosu systemowego.
+
+Sterowanie procesorem
+NOP, SEC, CLC, SEI, CLI
+Instrukcja pusta (No Operation), ustawianie lub czyszczenie flag (np. przeniesienia czy przerwań).
+"""
 
 from arch.base import Architecture
 

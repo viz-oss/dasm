@@ -8,3 +8,4 @@ OS = "c64"
 
 [dasm.imports]
 paths = [".."]
+repos = ["github.com/viz-oss/dasm-stdlib/"]
