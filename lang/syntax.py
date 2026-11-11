@@ -19,15 +19,13 @@ start: (line? _NL)*
 
 call: NAME "(" ")"
 
-statement: REG "=" (REG | NUMBER | ptr)
-         | ptr "=" REG
+statement: REG "=" (REG | NUMBER | NAME)
+         | (NUMBER | NAME) "=" REG         
 
 directive: DIRECTIVE value_list
          | DIRECTIVE STRING
 
 value_list: NUMBER ("," NUMBER)*
-
-ptr: "@" (NAME | NUMBER)
 
 // --- terminals: identifiers
 REG.3: /r\d+(?![A-Za-z_0-9])/
@@ -57,7 +55,6 @@ _TERMINAL_NAMES = {
     'EQUAL': '"="',
     'LABEL': 'label',
     'NAME': 'name',
-    'AT': '"@"',
     'DIRECTIVE': 'directive',
     'STRING': 'string',
     'COMMA': '","',
@@ -80,8 +77,12 @@ class ToAst(Transformer):
     def LABEL(self, tok):
         return Label(str(tok)[:-1])
 
-    def statement(self, children):
-        to, fr = children
+    def statement(self, c):
+        to, fr = c
+        if not isinstance(to, Reg):
+            to = Ptr(to)
+        if isinstance(fr, str):
+            fr = Ptr(fr)
         return Mov(to, fr)
 
     def value_list(self, c):
@@ -92,9 +93,6 @@ class ToAst(Transformer):
         
     def NAME(self, tok):
         return str(tok)
-
-    def ptr(self, c):
-        return Ptr(c[0])
         
     def call(self, c):
         return Call(c[0])
