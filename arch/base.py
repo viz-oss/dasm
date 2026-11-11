@@ -7,6 +7,7 @@ class Architecture(ABC):
 
     def __init__(self):
         self.labels = {}
+#        self.endian = ''
     
     def assembly(self, ast: []) -> list[int]:
         output: list[int] = []
@@ -24,14 +25,16 @@ class Architecture(ABC):
                     output += self.text(instr)
         return output
 
+    def bytes(self, instr) -> list[int]:
+        result = []
+        for byte in instr.values:
+            assert 0 <= byte.value < 255
+            result.append(byte.value)
+        return result
+
+    def text(self, instr) -> list[int]:
+        return []
+
     @abstractmethod
     def mov(self, instr) -> list[int]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def bytes(self, instr) -> list[int]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def text(self, instr) -> list[int]:
         raise NotImplementedError

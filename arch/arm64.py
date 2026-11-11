@@ -8,10 +8,10 @@ class Arm64Architecture(Architecture):
     
     def mov(self, instr) -> list[int]:
         # Register to register
-        if instr.isReg():
+        if instr.fromReg():
             return self._orr(instr)
         # Constant number to register
-        elif instr.isInt():
+        elif instr.fromInt():
             # 16-bit constants
             if 0 <= instr.fr.value < 0x10000:
                 return [self._movz(instr.to.n, instr.fr.value)]
@@ -45,12 +45,6 @@ class Arm64Architecture(Architecture):
         )
         assert len(bits) == 32, len(bits)
         return int(bits, 2)
-
-    def bytes(self, instr) -> list[int]:
-        return []
-
-    def text(self, instr) -> list[int]:
-        return []
 
 
 EXPORTS = Arm64Architecture

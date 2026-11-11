@@ -6,16 +6,12 @@ from arch.base import Architecture
 class MOSArchitecture(Architecture):
 
     def mov(self, instr) -> list[int]:
-        return []
+        if instr.fromInt():
+            assert 0 <= instr.fr.value < 255
+            return self._lda_immediate(instr)
+        raise NotImplementedError(instr)
 
-    def bytes(self, instr) -> list[int]:
-        result = []
-        for byte in instr.values:
-            result.append(byte.value)
-        return result
-
-    def text(self, instr) -> list[int]:
-        return []
-
+    def _lda_immediate(self, instr) -> list[int]:
+        return [0xA9, instr.fr.value]
 
 EXPORTS = MOSArchitecture

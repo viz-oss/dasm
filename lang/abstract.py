@@ -29,10 +29,10 @@ class Mov:
     to: Reg
     fr: Reg | Int
     
-    def isReg(self):
+    def fromReg(self):
         return isinstance(self.fr, Reg)
 
-    def isInt(self):
+    def fromInt(self):
         return isinstance(self.fr, Int)
 
 
