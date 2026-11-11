@@ -64,6 +64,15 @@ class Label:
 
 
 @dataclass(frozen=True, slots=True)
+class Call:
+    """name()
+
+    Call of a symbol. Execution continues after the call returns.
+    """
+    target: str
+
+
+@dataclass(frozen=True, slots=True)
 class Bytes:
     """.bN <v1>, <v2>, ...
 

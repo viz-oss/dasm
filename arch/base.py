@@ -19,6 +19,8 @@ class Architecture(ABC):
                     self.labels[instr.name] = len(output)
                 case 'Mov':
                     output += self.mov(instr)
+                case 'Call':
+                    output += self.call(instr)
                 case 'Bytes':
                     output += self.bytes(instr)
                 case 'Text':
@@ -37,4 +39,8 @@ class Architecture(ABC):
 
     @abstractmethod
     def mov(self, instr) -> list[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def call(self, instr) -> list[int]:
         raise NotImplementedError

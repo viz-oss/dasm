@@ -29,5 +29,8 @@ class MOSArchitecture(Architecture):
         byte0, byte1 = address.to_bytes(2, byteorder=self.endian)
         return [0x8D, byte0, byte1]
 
+    def call(self, instr) -> list[int]:
+        return [0x4C, 0x0D, 0x08]
+
 
 EXPORTS = MOSArchitecture

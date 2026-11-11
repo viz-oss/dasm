@@ -5,7 +5,7 @@ Lark parser
 import ast
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
-from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr
+from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Call
 from .exceptions import DasmSyntaxError
 
 
@@ -15,6 +15,9 @@ start: (line? _NL)*
 ?line: LABEL
      | statement
      | directive
+     | call
+
+call: NAME "(" ")"
 
 statement: REG "=" (REG | NUMBER | ptr)
          | ptr "=" REG
@@ -27,9 +30,9 @@ value_list: NUMBER ("," NUMBER)*
 ptr: "@" (NAME | NUMBER)
 
 // --- terminals: identifiers
-REG: /r\d+/
-NAME: /[A-Za-z_]\w*/
-LABEL.2: /[A-Za-z_]\w*:/
+REG.3: /r\d+(?![A-Za-z_0-9])/
+NAME: /(?!r\d+(?![A-Za-z_0-9]))[A-Za-z_]\w*/
+LABEL.2: /(?!r\d+:)[A-Za-z_]\w*:/
 DIRECTIVE: /\.[a-z]\w*/
 
 // --- terminals: literals
@@ -58,6 +61,8 @@ _TERMINAL_NAMES = {
     'DIRECTIVE': 'directive',
     'STRING': 'string',
     'COMMA': '","',
+    'LPAR': '"("',
+    'RPAR': '")"',
 }
 
 
@@ -90,6 +95,9 @@ class ToAst(Transformer):
 
     def ptr(self, c):
         return Ptr(c[0])
+        
+    def call(self, c):
+        return Call(c[0])
 
     def directive(self, c):
         name, arg = c

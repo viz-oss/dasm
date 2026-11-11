@@ -4,9 +4,9 @@
 ;.const VIC_BG_COLOR = 0xD021
 
 start:
-  r0 = 11      ; lda #$02
+  r0 = 12      ; lda #$02
   @0xD020 = r0 ; sta $d020 (kolor ramki)
-  r0 = 12      ; lda #$03
+  r0 = 13      ; lda #$03
   @0xD021 = r0 ; sta $d021 (kolor tła)
-  ;@start
-  .b 0x4C, 0x0D, 0x08             ; jmp $080d
+  start()      ; jmp $080d
+  ;.b 0x4C, 0x0D, 0x08             ; jmp $080d
