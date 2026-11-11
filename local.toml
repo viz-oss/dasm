@@ -1,0 +1,4 @@
+[dasm.imports]
+paths = [
+    ".."
+]

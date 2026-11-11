@@ -3,6 +3,18 @@
 ;.const VIC_FRAME_COLOR = 0xD020
 ;.const VIC_BG_COLOR = 0xD021
 
+; vic_frame_color(color: int):
+;   r0 = color
+;   VIC_FRAME_COLOR = r0
+
+; vic_bg_color(color: int):
+;   r0 = color
+;   VIC_BG_COLOR = r0
+
+; start:
+;   vic_frame_color(13)
+;   vic_bg_color(14)
+
 start:
   r0 = 13      ; lda #$02
   0xD020 = r0  ; sta $d020 (kolor ramki)

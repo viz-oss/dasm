@@ -8,6 +8,7 @@ from pathlib import Path
 import argparse, sys, importlib
 from lang.syntax import parse
 from lang.exceptions import DasmSyntaxError
+import bootstrap.settings
 
 
 def load_module(dir: str, name: str):
@@ -28,6 +29,7 @@ def load_module(dir: str, name: str):
 
 
 def main(argv = None):
+    # Commandline parser
     parser = argparse.ArgumentParser(description=f"dasm v{__version__}")
     parser.add_argument(
         'source',
@@ -36,13 +38,11 @@ def main(argv = None):
     parser.add_argument(
         '--arch',
         choices=['alu48', 'arm64', 'mos', 'wasm', 'x86'],
-        default='arm64',
         help='output architecture'
     )
     parser.add_argument(
         '--format',
         choices=['bin', 'elf', 'hex', 'macho', 'prg'],
-        default='macho',
         help='output format',
     )
     parser.add_argument(
@@ -51,32 +51,61 @@ def main(argv = None):
     )
     parser.add_argument(
         '-d', '--debug',
+        action='store_true',
         help='debugging mode for the output file'
     )
     args = parser.parse_args(argv)
+    
+    # Header
+    print(f"dasm v{__version__}")
 
-    source_path = Path(args.source)
+    # Settings in *.toml
+    settings = bootstrap.settings.load_all()
+    
+    # Options
+    options = {
+        # Defaults
+        'arch': 'arm64',
+        'format': 'macho',
+        'debug' : False,
+        # Read from *.toml
+        **settings.get('dasm', {}).get('options', {}),
+        # Commandline
+        'source': args.source,
+        'output': args.output,
+    }
+    # Commandline
+    if args.arch: options['arch'] = args.arch
+    if args.format: options['format'] = args.format
+    if args.debug: options['debug'] = args.debug
+    
+    # Env variables
+    env = {**settings.get('dasm', {}).get('env', {})}
+    
+    # Import paths
+    paths = [*settings.get('dasm', {}).get('imports', [])]
+
+    # Read source file
+    source_path = Path(options['source'])
     if not source_path.exists():
         print(f"File not found: {source_path}", file=sys.stderr)
         return 1
-
-    print(f"dasm v{__version__}")
     source_text = source_path.read_text(encoding='utf-8')
 
     # Parse
     print("Parsing...", end='')
     try:
-        ast = parse(source_text)
+        ast = parse(source_text, env, paths)
     except DasmSyntaxError as e:
         print('\n')
-        print(f"{args.source}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)
+        print(f"{options['source']}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)
         return 1
     print("OK")
 
     # Load architecture
     print("Architecture...", end='')
-    arch = load_module('arch', args.arch)
-    print(args.arch)
+    arch = load_module('arch', options['arch'])
+    print(options['arch'])
 
     # Assembly
     print("Assembly...", end='')
@@ -85,13 +114,13 @@ def main(argv = None):
 
     # Format output
     print("Format...", end='')
-    format = load_module('format', args.format)
+    format = load_module('format', options['format'])
     output = format.output(words)
-    print(args.format)
+    print(options['format'])
 
     # Save output file
     print("Output...", end='')
-    output_name = args.output if args.output else source_path.name.replace('.dasm', '.' + format.ext)
+    output_name = options['output'] if options['output'] else source_path.name.replace('.dasm', '.' + format.ext)
     if not output_name.endswith('.' + format.ext): output_name += '.' + format.ext
     output_path = Path(output_name)
     with open(output_path, 'wb') as f:

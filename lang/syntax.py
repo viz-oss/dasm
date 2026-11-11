@@ -3,6 +3,7 @@ Lark parser
 """
 
 import ast
+from typing import Dict
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
 from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Call
@@ -109,7 +110,7 @@ class ToAst(Transformer):
 _parser = Lark(GRAMMAR, parser='lalr')
 
 
-def parse(text: str) -> list:
+def parse(text: str, env: Dict, paths: Dict) -> list:
     if not text.endswith('\n'):
         text += '\n'
     try:
