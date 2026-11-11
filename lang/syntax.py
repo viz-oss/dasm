@@ -18,18 +18,25 @@ start: (line? _NL)*
 
 statement: REG "=" (REG | NUMBER | ptr)
          | ptr "=" REG
+
 directive: DIRECTIVE value_list
          | DIRECTIVE STRING
 
 value_list: NUMBER ("," NUMBER)*
 
-REG: /r\d+/
-LABEL.2: /[A-Za-z_]\w*:/
-NUMBER: /-?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|\d+(?:_\d+)*)/
-DIRECTIVE: /\.[a-z]\w*/
 ptr: "@" (NAME | NUMBER)
+
+// --- terminals: identifiers
+REG: /r\d+/
 NAME: /[A-Za-z_]\w*/
+LABEL.2: /[A-Za-z_]\w*:/
+DIRECTIVE: /\.[a-z]\w*/
+
+// --- terminals: literals
+NUMBER: /-?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|\d+(?:_\d+)*)/
 STRING: /"(\\.|[^"\\\r\n])*"/
+
+// --- terminals: whitespace and comments
 COMMENT: /;[^\r\n]*|#[^\r\n]*|\/\/[^\r\n]*/
 WHITESPACE: /[ \t]+/
 _NL: /(\r?\n)+/
@@ -48,6 +55,9 @@ _TERMINAL_NAMES = {
     'LABEL': 'label',
     'NAME': 'name',
     'AT': '"@"',
+    'DIRECTIVE': 'directive',
+    'STRING': 'string',
+    'COMMA': '","',
 }
 
 
