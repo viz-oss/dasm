@@ -9,7 +9,10 @@ class MOSArchitecture(Architecture):
         return []
 
     def bytes(self, instr) -> list[int]:
-        return []
+        result = []
+        for byte in instr.values:
+            result.append(byte.value)
+        return result
 
     def text(self, instr) -> list[int]:
         return []

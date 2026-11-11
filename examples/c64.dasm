@@ -2,7 +2,9 @@
 ; Adres startowy w pamięci RAM: $1000 (4096 dziesiętnie)
 
 start:
-  r0 = 2          ; lda #$02  ; Załaduj do akumulatora (A) wartość $02 (kolor czerwony)
-  @0xD020 = r0    ; sta $D020 ; Zapisz wartość z akumulatora pod adres rejestru ramki (Border Color)
-  @0xD021 = r0    ; sta $D021 ; Zapisz tę samą wartość pod adres rejestru tła (Background Color)
-  exit()          ; rts       ; Return from Subroutine – koniec programu, powrót do BASIC-a
+  .b 0xA9, 0x02                   ; lda #$02
+  .b 0x8D, 0x20, 0xD0             ; sta $d020 (kolor ramki)
+  .b 0xA9, 0x03                   ; lda #$03
+  .b 0x8D, 0x21, 0xD0             ; sta $d021 (kolor tła)
+  .b 0x4C, 0x0D, 0x08             ; jmp $080d
+

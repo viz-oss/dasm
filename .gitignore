@@ -3,4 +3,8 @@ Thumbs.db
 __pycache__/
 .pytest_cache/
 .venv/
+*.bin
+*.elf
+*.hex
 *.o
+*.prg
