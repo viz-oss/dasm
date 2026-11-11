@@ -17,12 +17,13 @@
 ;  VIC_FRAME_COLOR = r0  ; sta $d020 (kolor ramki)
 ;  r0 = 15               ; lda #$03
 ;  VIC_BG_COLOR = r0     ; sta $d021 (kolor tła)
-;  start()               ; jmp $080d TODO: jeszcze $080d jest na sztywno, czeka na tablice relokacji
+;  .b 0x60               ; rts (return to os)
 
 start:
   r0 = 14      ; lda #$02
   0xD020 = r0  ; sta $d020 (kolor ramki)
   r0 = 15      ; lda #$03
   0xD021 = r0  ; sta $d021 (kolor tła)
-  start()      ; jmp $080d
+  .b 0x60      ; rts (return to os)
+  ;start()      ; jmp $080d
   ;.b 0x4C, 0x0D, 0x08             ; jmp $080d

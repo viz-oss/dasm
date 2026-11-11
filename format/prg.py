@@ -1,4 +1,15 @@
-"""Format: C=64 prg"""
+"""
+Format: C=64 prg
+
+┌─────────────────────────────┐  offset 0
+│ header (2 B)                │
+│   load address      = 2     │  ← Adres ładowania
+├─────────────────────────────┤  offset 2
+│ basic stub                  │  ← Opcjonalny stub w BASIC-u 
+├─────────────────────────────┤  offset 14
+│ program                     │  ← Właściwy kod programu 
+└─────────────────────────────┘
+"""
 
 from format.bin import FormatBin
 

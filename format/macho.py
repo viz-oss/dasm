@@ -1,6 +1,6 @@
-"""Format: Mach-O for Apple Silicon"""
-
 """
+Format: Mach-O for Apple Silicon
+
 ┌─────────────────────────────┐  offset 0
 │ mach_header_64 (32 B)       │
 │   ncmds      = 2            │  ← liczba LOAD COMMANDS
