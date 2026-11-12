@@ -38,5 +38,5 @@ def load_all() -> Dict[str, Any]:
         allsettings['options'] = { **allsettings['options'], **settings.get('dasm', {}).get('options', {}) }
         allsettings['env'] = { **allsettings['env'], **settings.get('dasm', {}).get('env', {}) }
         allsettings['paths'] = [ *allsettings['paths'], *settings.get('dasm', {}).get('imports', {}).get('paths', []) ]
-    allsettings['paths'] = list(set(allsettings['paths']))
+    allsettings['paths'] = list(dict.fromkeys(allsettings['paths']))
     return allsettings

@@ -9,11 +9,10 @@
 ; 0xD020 = r0 = 13
 ; 0xD021 = r0 = 14
 
-.set VIC_FRAME_COLOR = 0xD020
-.set VIC_BG_COLOR = 0xD021
+.import 'sys/c64/vic'
 
 start:
-  r0 = 5                ; lda #$02
+  r0 = VIC_RED          ; lda #$02
   VIC_FRAME_COLOR = r0  ; sta $d020 (kolor ramki)
   r0 = 10               ; lda #$03
   VIC_BG_COLOR = r0     ; sta $d021 (kolor tła)

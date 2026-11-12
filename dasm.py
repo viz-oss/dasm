@@ -7,6 +7,7 @@ __version__ = '2.0.2'
 from pathlib import Path
 import argparse, sys
 from lang.preprocess import preprocess
+from lang.imports import resolve
 from lang.syntax import parse
 from lang.exceptions import DasmSyntaxError
 import bootstrap.settings
@@ -71,10 +72,11 @@ def main(argv = None):
         return 1
     source_text = source_path.read_text(encoding='utf-8')
 
-    # Parse
+    # Preprocess/Parse
     print("Parsing...", end='')
     try:
-        processed_text = preprocess(source_text, settings['env'])
+        full_text = resolve(source_text, settings['env'], settings['paths'], source_path)
+        processed_text = preprocess(full_text, settings['env'])
         ast = parse(processed_text)
     except DasmSyntaxError as e:
         print('\n')
