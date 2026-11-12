@@ -5,7 +5,9 @@ from arch.base import Architecture
 
 
 class Arm64Architecture(Architecture):
-    
+
+    word_size = 4
+
     def __init__(self):
         super().__init__()
         self.endian = 'little'
@@ -51,7 +53,7 @@ class Arm64Architecture(Architecture):
         assert len(bits) == 32, len(bits)
         return int(bits, 2)
 
-    def call(self, instr) -> list[int]:
+    def call(self, instr, offset: int = 0) -> list[int]:
         """Encode a call instruction.
 
         ARM64 call/label encoding is not implemented yet.

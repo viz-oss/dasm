@@ -14,7 +14,7 @@
 start:
   r0 = VIC_RED          ; lda #$02
   VIC_FRAME_COLOR = r0  ; sta $d020 (kolor ramki)
-  r0 = VIC_ORANGE       ; lda #$03
+  r0 = VIC_BLUE         ; lda #$03
   VIC_BG_COLOR = r0     ; sta $d021 (kolor tła)
   .b 0x60               ; rts (return to os)
 

@@ -108,14 +108,16 @@ def main(argv = None):
     arch = load_module('arch', options['arch'])
     print(options['arch'])
 
+    # Load format first so it can provide the origin for labels
+    format = load_module('format', options['format'])
+
     # Assembly
     print("Assembly...", end='')
-    words = arch.assembly(ast)
+    words = arch.assembly(ast, origin=getattr(format, 'origin', 0))
     print("OK")
 
     # Format output
     print("Format...", end='')
-    format = load_module('format', options['format'])
     output = format.output(words)
     print(options['format'])
 

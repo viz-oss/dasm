@@ -36,7 +36,7 @@ NOP, SEC, CLC, SEI, CLI
 No operation (No Operation), setting or clearing flags (for example, carry or interrupt flags).
 """
 
-from arch.base import Architecture
+from arch.base import Architecture, Relocation
 
 
 class MOSArchitecture(Architecture):
@@ -65,8 +65,12 @@ class MOSArchitecture(Architecture):
         byte0, byte1 = address.to_bytes(2, byteorder=self.endian)
         return [0x8D, byte0, byte1]
 
-    def call(self, instr) -> list[int]:
-        return [0x4C, 0x0D, 0x08]
+    def call(self, instr, offset: int = 0) -> list[int]:
+        # JMP $xxxx - the address is patched after all labels are known.
+        self.relocations.append(
+            Relocation(offset + 1, instr.target, 2, self.endian)
+        )
+        return [0x4C, 0x00, 0x00]
 
 
 EXPORTS = MOSArchitecture
