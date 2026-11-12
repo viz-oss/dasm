@@ -33,11 +33,46 @@ class SourceSegment:
 
 
 @dataclass(frozen=True)
+class ColumnSegment:
+    """A contiguous range of processed columns from one original token."""
+
+    start: int          # first processed column, 1-based
+    end: int            # last processed column, 1-based
+    source: int         # original column corresponding to `start`
+    fixed: bool = False  # substituted constant: all columns map to `source`
+
+
+class ColumnMap:
+    """Translate processed columns in one line back to original columns."""
+
+    def __init__(self, segments: list[ColumnSegment] | None = None):
+        self.segments = segments or []
+        self._starts = [segment.start for segment in self.segments]
+
+    def lookup(self, processed_col: int) -> int:
+        if not self.segments:
+            return processed_col
+        index = bisect.bisect_right(self._starts, processed_col) - 1
+        if index < 0:
+            return processed_col
+        segment = self.segments[index]
+        if segment.fixed:
+            return segment.source
+        return segment.source + (processed_col - segment.start)
+
+
+@dataclass(frozen=True)
 class ResolvedSource:
     """Combined source text together with its line map."""
 
     text: str
     source_map: SourceMap
+
+
+def _format_context(line: str, col: int) -> str:
+    """Build a Lark-style context line with a caret at `col`."""
+    before = line[:max(col - 1, 0)]
+    return f"{line}\n{' ' * len(before.expandtabs())}^\n"
 
 
 class SourceMap:
@@ -60,6 +95,7 @@ class SourceMap:
                 virtual_line, virtual_line, location.path, location.line
             ))
         self._starts = [segment.start for segment in self.segments]
+        self._file_lines: dict[str, list[str]] = {}
 
     def lookup(self, virtual_line: int) -> SourceLocation | None:
         """Return the original location for a 1-based virtual line."""
@@ -73,8 +109,24 @@ class SourceMap:
             segment.path, segment.line + (virtual_line - segment.start)
         )
 
-    def relocate(self, error: DasmSyntaxError) -> DasmSyntaxError:
-        """Translate an error's virtual line to its original file and line.
+    def original_line(self, location: SourceLocation) -> str | None:
+        """Read the original source line for a location, with caching."""
+        path = str(location.path)
+        if path not in self._file_lines:
+            try:
+                text = Path(path).read_text(encoding="utf-8")
+            except (OSError, ValueError):
+                self._file_lines[path] = []
+            else:
+                self._file_lines[path] = text.split("\n")
+        lines = self._file_lines[path]
+        if 1 <= location.line <= len(lines):
+            return lines[location.line - 1]
+        return None
+
+    def relocate(self, error: DasmSyntaxError,
+                 column_maps: list[ColumnMap] | None = None) -> DasmSyntaxError:
+        """Translate an error's virtual location to the original source.
 
         Errors that already carry a file (for example import resolution errors)
         are returned unchanged.
@@ -84,6 +136,23 @@ class SourceMap:
         location = self.lookup(error.line)
         if location is None:
             return error
+
+        columns_mapped = False
+        if (error.map_columns and column_maps is not None
+                and error.col is not None):
+            index = error.line - 1
+            if 0 <= index < len(column_maps):
+                error.col = column_maps[index].lookup(error.col)
+                columns_mapped = True
+
         error.file = str(location.path)
         error.line = location.line
+
+        if (error.context and error.col is not None
+                and (columns_mapped or not error.map_columns)):
+            line = self.original_line(location)
+            if line is not None:
+                error.message = _format_context(line, error.col)
+
+        error.args = (str(error),)
         return error

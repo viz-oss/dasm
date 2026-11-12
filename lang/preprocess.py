@@ -8,7 +8,9 @@ inside `start:`, `.art`, a string literal or a comment.
 import ast
 import json
 import re
+from dataclasses import dataclass
 from .exceptions import DasmSyntaxError
+from .sourcemap import ColumnMap, ColumnSegment
 
 
 _TOKEN_RE = re.compile(r'''
@@ -27,6 +29,14 @@ _NUM_RE = re.compile(r'-?\d\w*')
 _NAME_RE = re.compile(r'[A-Za-z_]\w*')
 
 Value = int | str
+
+
+@dataclass(frozen=True)
+class PreprocessedSource:
+    """Processed text with per-line column maps back to the original text."""
+
+    text: str
+    column_maps: list[ColumnMap]
 
 
 # --- validation -------------------------------------------------------------
@@ -94,8 +104,10 @@ def _render(value: Value) -> str:
 
 # --- public API -------------------------------------------------------------
 
-def preprocess(text: str, defines: dict[str, Value] | None = None) -> str:
-    """Process .set lines and substitute constants.
+def preprocess_with_map(text: str,
+                        defines: dict[str, Value] | None = None
+                        ) -> PreprocessedSource:
+    """Process .set lines and substitute constants, keeping column maps.
 
     defines: constants from the project config; visible from the first line
     and not overridable by .set. A constant must be defined before use.
@@ -104,6 +116,7 @@ def preprocess(text: str, defines: dict[str, Value] | None = None) -> str:
     consts: dict[str, Value] = dict(external)
     defined: set[str] = set()
     out = []
+    column_maps = []
 
     # split('\n'), not splitlines(): the numbering must match the Lark lexer
     for lineno, line in enumerate(text.split('\n'), 1):
@@ -113,11 +126,35 @@ def preprocess(text: str, defines: dict[str, Value] | None = None) -> str:
         if sig and sig[0][:2] == ('directive', '.set'):
             _define(consts, external, defined, sig, lineno)
             out.append('')          # an empty line remains, the numbering does not shift
+            column_maps.append(ColumnMap())
             continue
 
-        out.append(''.join(
-            _render(consts[v]) if k == 'name' and v in consts else v
-            for k, v, _ in toks
-        ))
+        parts = []
+        segments = []
+        out_col = 1
+        for kind, value, start in toks:
+            original_col = start + 1
+            if kind == 'name' and value in consts:
+                rendered = _render(consts[value])
+                segments.append(ColumnSegment(
+                    out_col, out_col + len(rendered) - 1,
+                    original_col, fixed=True
+                ))
+                parts.append(rendered)
+                out_col += len(rendered)
+            else:
+                segments.append(ColumnSegment(
+                    out_col, out_col + len(value) - 1, original_col
+                ))
+                parts.append(value)
+                out_col += len(value)
 
-    return '\n'.join(out)
+        out.append(''.join(parts))
+        column_maps.append(ColumnMap(segments))
+
+    return PreprocessedSource('\n'.join(out), column_maps)
+
+
+def preprocess(text: str, defines: dict[str, Value] | None = None) -> str:
+    """Process .set lines and substitute constants."""
+    return preprocess_with_map(text, defines).text

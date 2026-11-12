@@ -55,7 +55,7 @@ Brak zmiennej w `env` jest błędem.
 - Cykl importów (`a -> b -> a`) jest błędem.
 - Import samego siebie jest błędem.
 
-## Numery linii
+## Numery linii i kolumny
 
 Wklejenie pliku zastępuje jedną linię wieloma liniami, więc numery kolejnych
 linii w połączonym tekście się przesuwają. `resolve_with_map()` zwraca razem z
@@ -67,18 +67,23 @@ tekstem `SourceMap`, która pamięta segmenty:
 [90..]   examples/c64.dasm        line 13
 ```
 
-Dzięki temu błąd w wirtualnej linii 92 jest raportowany jako:
+Dzięki temu błąd w wirtualnej linii 93 jest raportowany jako:
 
 ```text
-examples/c64.dasm:15:7: syntax error
+examples/c64.dasm:16:21: syntax error
+Expected register
+
+  VIC_FRAME_COLOR = r  ; sta $d020 (kolor ramki)
+                    ^
 ```
 
 Błędy samego importu (brak pliku, cykl, zła zmienna env) od razu mają ustawioną
 nazwę pliku i linię. Błędy `preprocess` i parsera są relokowane przez mapę.
 
-Mapowana jest tylko linia. Kolumna i kontekst błędu nadal pochodzą z tekstu po
-`preprocess`, więc jeśli podmiana stałej zmieni długość tekstu przed błędem,
-kolumna może się przesunąć.
+`preprocess_with_map()` dokłada `ColumnMap` dla każdej linii, więc po imporcie
+korygowana jest także kolumna. Kontekst błędu jest odtwarzany z oryginalnej
+linii pliku, a nie z tekstu po podmianie stałych. Wnętrze podstawionej wartości
+mapuje się na początek nazwy stałej.
 
 ## Przykład
 

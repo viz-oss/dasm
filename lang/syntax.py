@@ -104,7 +104,11 @@ class ToAst(Transformer):
             return Bytes(_BYTES_DIRECTIVES[name], arg)
         if isinstance(arg, str) and name == '.text':
             return Text(arg)
-        raise DasmSyntaxError(name.line, name.column, message=f"unknown or misused directive {name}")
+        raise DasmSyntaxError(
+            name.line, name.column,
+            message=f"unknown or misused directive {name}",
+            map_columns=True
+        )
 
 
 _parser = Lark(GRAMMAR, parser='lalr')
@@ -123,7 +127,9 @@ def parse(text: str) -> list:
             line=getattr(e, 'line', None),
             col=getattr(e, 'column', None),
             expected=names,
-            message=context
+            message=context,
+            map_columns=True,
+            context=True
         ) from e
     try:
         return ToAst().transform(parsed)
@@ -131,5 +137,10 @@ def parse(text: str) -> list:
         if isinstance(e.orig_exc, DasmSyntaxError):
             raise e.orig_exc from None
         tok = getattr(e.obj, 'line', None)
-        raise DasmSyntaxError(message=f"invalid literal: {e.orig_exc}") from e
+        col = getattr(e.obj, 'column', None)
+        raise DasmSyntaxError(
+            line=tok, col=col,
+            message=f"invalid literal: {e.orig_exc}",
+            map_columns=True
+        ) from e
     

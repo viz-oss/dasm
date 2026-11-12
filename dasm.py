@@ -6,7 +6,7 @@ __version__ = '2.0.2'
 
 from pathlib import Path
 import argparse, os, sys
-from lang.preprocess import preprocess
+from lang.preprocess import preprocess_with_map
 from lang.imports import resolve_with_map
 from lang.syntax import parse
 from lang.exceptions import DasmSyntaxError
@@ -85,14 +85,16 @@ def main(argv = None):
     # Preprocess/Parse
     print("Parsing...", end='')
     source_map = None
+    column_maps = None
     try:
         resolved = resolve_with_map(source_text, settings['env'], settings['paths'], source_path)
         source_map = resolved.source_map
-        processed_text = preprocess(resolved.text, settings['env'])
-        ast = parse(processed_text)
+        preprocessed = preprocess_with_map(resolved.text, settings['env'])
+        column_maps = preprocessed.column_maps
+        ast = parse(preprocessed.text)
     except DasmSyntaxError as e:
         if source_map is not None:
-            e = source_map.relocate(e)
+            e = source_map.relocate(e, column_maps)
         error_file = _display_path(e.file) if e.file else options['source']
         line = e.line if e.line is not None else ''
         col = e.col if e.col is not None else ''
