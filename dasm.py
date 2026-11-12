@@ -5,13 +5,23 @@ Main launching script.
 __version__ = '2.0.2'
 
 from pathlib import Path
-import argparse, sys
+import argparse, os, sys
 from lang.preprocess import preprocess
-from lang.imports import resolve
+from lang.imports import resolve_with_map
 from lang.syntax import parse
 from lang.exceptions import DasmSyntaxError
 import bootstrap.settings
 from bootstrap.modules import load_module
+
+
+def _display_path(path):
+    """Show a source path relative to the current working directory."""
+    if path is None:
+        return None
+    file_path = Path(path)
+    if not file_path.is_absolute():
+        return str(file_path)
+    return os.path.relpath(file_path, Path.cwd())
 
 
 def main(argv = None):
@@ -74,13 +84,20 @@ def main(argv = None):
 
     # Preprocess/Parse
     print("Parsing...", end='')
+    source_map = None
     try:
-        full_text = resolve(source_text, settings['env'], settings['paths'], source_path)
-        processed_text = preprocess(full_text, settings['env'])
+        resolved = resolve_with_map(source_text, settings['env'], settings['paths'], source_path)
+        source_map = resolved.source_map
+        processed_text = preprocess(resolved.text, settings['env'])
         ast = parse(processed_text)
     except DasmSyntaxError as e:
+        if source_map is not None:
+            e = source_map.relocate(e)
+        error_file = _display_path(e.file) if e.file else options['source']
+        line = e.line if e.line is not None else ''
+        col = e.col if e.col is not None else ''
         print('\n')
-        print(f"{options['source']}:{e.line if e.line else ''}:{e.col if e.col else ''}: syntax error\n{e}", file=sys.stderr)
+        print(f"{error_file}:{line}:{col}: syntax error\n{e}", file=sys.stderr)
         return 1
     print("OK")
 

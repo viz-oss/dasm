@@ -58,9 +58,27 @@ Brak zmiennej w `env` jest błędem.
 ## Numery linii
 
 Wklejenie pliku zastępuje jedną linię wieloma liniami, więc numery kolejnych
-linii w połączonym tekście się przesuwają. Błędy parsera odnoszą się do
-połączonego tekstu, natomiast błędy samego importu zawierają nazwę pliku i
-numer linii, w której wystąpił `.import`.
+linii w połączonym tekście się przesuwają. `resolve_with_map()` zwraca razem z
+tekstem `SourceMap`, która pamięta segmenty:
+
+```text
+[1..11]  examples/c64.dasm        line 1
+[12..89] ../sys/c64/vic.dasm      line 1
+[90..]   examples/c64.dasm        line 13
+```
+
+Dzięki temu błąd w wirtualnej linii 92 jest raportowany jako:
+
+```text
+examples/c64.dasm:15:7: syntax error
+```
+
+Błędy samego importu (brak pliku, cykl, zła zmienna env) od razu mają ustawioną
+nazwę pliku i linię. Błędy `preprocess` i parsera są relokowane przez mapę.
+
+Mapowana jest tylko linia. Kolumna i kontekst błędu nadal pochodzą z tekstu po
+`preprocess`, więc jeśli podmiana stałej zmieni długość tekstu przed błędem,
+kolumna może się przesunąć.
 
 ## Przykład
 

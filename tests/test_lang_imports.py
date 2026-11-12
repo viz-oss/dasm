@@ -1,10 +1,13 @@
 """Unit tests for .import resolution."""
 
+from pathlib import Path
+
 import pytest
 
 from lang.exceptions import DasmSyntaxError
-from lang.imports import resolve
+from lang.imports import resolve, resolve_with_map
 from lang.preprocess import preprocess
+from lang.sourcemap import SourceLocation
 
 
 def _write(path, text):
@@ -142,3 +145,74 @@ def test_imported_set_is_visible_to_preprocess(tmp_path):
     result = preprocess(full_text)
 
     assert result == "\nr0 = 13\n"
+
+
+def test_resolve_with_map_marks_imported_lines(tmp_path):
+    lib = _write(tmp_path / "lib.dasm", "r0 = 1\nr0 = 2\n")
+    src = _write(
+        tmp_path / "main.dasm", ".import 'lib.dasm'\nr0 = 3\n"
+    )
+
+    resolved = resolve_with_map(
+        src.read_text(encoding="utf-8"), source_path=src
+    )
+
+    assert resolved.text == "r0 = 1\nr0 = 2\nr0 = 3\n"
+    assert resolved.source_map.lookup(1) == SourceLocation(lib.resolve(), 1)
+    assert resolved.source_map.lookup(2) == SourceLocation(lib.resolve(), 2)
+    assert resolved.source_map.lookup(3) == SourceLocation(src.resolve(), 2)
+
+
+def test_resolve_with_map_handles_nested_imports(tmp_path):
+    _write(tmp_path / "sub" / "b.dasm", "r0 = 2\n")
+    _write(tmp_path / "sub" / "a.dasm", ".import 'b.dasm'\nr0 = 1\n")
+    src = _write(tmp_path / "main.dasm", ".import 'sub/a.dasm'\n")
+
+    resolved = resolve_with_map(
+        src.read_text(encoding="utf-8"), source_path=src
+    )
+
+    assert resolved.text == "r0 = 2\nr0 = 1\n"
+    assert resolved.source_map.lookup(1) == SourceLocation(
+        (tmp_path / "sub" / "b.dasm").resolve(), 1
+    )
+    assert resolved.source_map.lookup(2) == SourceLocation(
+        (tmp_path / "sub" / "a.dasm").resolve(), 2
+    )
+
+
+def test_duplicate_import_maps_to_import_line(tmp_path):
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(
+        tmp_path / "main.dasm",
+        ".import 'lib.dasm'\n.import 'lib.dasm'\nr0 = 2\n",
+    )
+
+    resolved = resolve_with_map(
+        src.read_text(encoding="utf-8"), source_path=src
+    )
+
+    assert resolved.text == "r0 = 1\n\nr0 = 2\n"
+    assert resolved.source_map.lookup(2) == SourceLocation(src.resolve(), 2)
+    assert resolved.source_map.lookup(3) == SourceLocation(src.resolve(), 3)
+
+
+def test_import_error_has_source_file(tmp_path):
+    src = _write(tmp_path / "main.dasm", ".import 'missing.dasm'\n")
+
+    with pytest.raises(DasmSyntaxError) as exc:
+        resolve(src.read_text(encoding="utf-8"), source_path=src)
+
+    assert Path(exc.value.file) == src.resolve()
+
+
+def test_preprocess_preserves_line_count(tmp_path):
+    _write(tmp_path / "lib.dasm", ".set COLOR = 13\nr0 = 1\n")
+    src = _write(
+        tmp_path / "main.dasm", ".import 'lib.dasm'\nr0 = COLOR\n"
+    )
+
+    full_text = resolve(src.read_text(encoding="utf-8"), source_path=src)
+    processed_text = preprocess(full_text)
+
+    assert len(full_text.split("\n")) == len(processed_text.split("\n"))

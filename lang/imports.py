@@ -4,12 +4,16 @@ The resolver works on raw text, before preprocess(), so .set definitions from
 imported files are visible in the rest of the combined source.  Every file is
 inlined at most once; later imports of the same file are replaced with an empty
 line.
+
+Besides the combined text, resolve_with_map() also returns a SourceMap that
+translates virtual line numbers back to the original files.
 """
 
 import re
 from pathlib import Path
 
 from .exceptions import DasmSyntaxError
+from .sourcemap import ResolvedSource, SourceLocation, SourceMap
 
 
 _IMPORT_RE = re.compile(
@@ -19,20 +23,22 @@ _ENV_RE = re.compile(r"\{([A-Za-z_]\w*)\}")
 _DEFAULT_SUFFIX = ".dasm"
 
 
-def _error(lineno: int, col: int, message: str) -> DasmSyntaxError:
-    return DasmSyntaxError(lineno, col, message=message)
+def _error(lineno: int, col: int, message: str,
+           source_path: Path) -> DasmSyntaxError:
+    return DasmSyntaxError(lineno, col, message=message,
+                           file=str(source_path))
 
 
 def _expand_env(name: str, env: dict, lineno: int, col: int,
-                source_name: str) -> str:
+                source_path: Path) -> str:
     """Substitute {NAME} placeholders from the project environment."""
     def replace(match: re.Match) -> str:
         key = match.group(1)
         if key not in env:
             raise _error(
                 lineno, col,
-                f"{source_name}:{lineno}: unknown environment variable "
-                f"'{key}' in import path {name!r}"
+                f"unknown environment variable '{key}' in import path {name!r}",
+                source_path,
             )
         return str(env[key])
 
@@ -75,70 +81,73 @@ def _find_import(name: str, base_dir: Path,
 
 
 def _read_import(path: Path, lineno: int, col: int,
-                 source_name: str) -> str:
+                 source_path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
     except OSError as e:
         raise _error(
-            lineno, col,
-            f"{source_name}:{lineno}: cannot read import {path}: {e}"
+            lineno, col, f"cannot read import {path}: {e}", source_path
         ) from e
 
 
 def _resolve_text(text: str, base_dir: Path, env: dict,
                   search_paths: list[str], seen: set[Path], stack: list[Path],
-                  source_name: str) -> list[str]:
+                  source_path: Path) -> tuple[list[str], list[SourceLocation]]:
     out = []
+    locations = []
     for lineno, line in enumerate(text.split("\n"), 1):
         match = _IMPORT_RE.match(line)
         if not match:
             out.append(line)
+            locations.append(SourceLocation(source_path, lineno))
             continue
 
         raw_name = match.group("path")
         col = match.start("path") + 1
-        name = _expand_env(raw_name, env, lineno, col, source_name)
+        name = _expand_env(raw_name, env, lineno, col, source_path)
 
         found, candidates = _find_import(name, base_dir, search_paths)
         if found is None:
             searched = "\n".join(f"  {candidate}" for candidate in candidates)
             raise _error(
                 lineno, col,
-                f"{source_name}:{lineno}: cannot import {raw_name!r}: "
-                f"file not found\nsearched:\n{searched}"
+                f"cannot import {raw_name!r}: file not found\n"
+                f"searched:\n{searched}",
+                source_path,
             )
 
         if found in stack:
             chain = " -> ".join(str(path) for path in [*stack, found])
             raise _error(
-                lineno, col,
-                f"{source_name}:{lineno}: circular import: {chain}"
+                lineno, col, f"circular import: {chain}", source_path
             )
 
         if found in seen:
             out.append("")          # keep one line in place of the import
+            locations.append(SourceLocation(source_path, lineno))
             continue
 
         seen.add(found)
         stack.append(found)
         try:
-            imported = _read_import(found, lineno, col, source_name)
+            imported = _read_import(found, lineno, col, source_path)
             if imported.endswith("\n"):
                 imported = imported[:-1]
-            out.extend(_resolve_text(
-                imported, found.parent, env, search_paths, seen, stack,
-                str(found)
-            ))
+            imported_lines, imported_locations = _resolve_text(
+                imported, found.parent, env, search_paths, seen, stack, found
+            )
+            out.extend(imported_lines)
+            locations.extend(imported_locations)
         finally:
             stack.pop()
 
-    return out
+    return out, locations
 
 
-def resolve(text: str, env: dict | None = None,
-            paths: list[str] | None = None,
-            source_path: Path | str | None = None) -> str:
-    """Inline all .import directives and return one combined source string.
+def resolve_with_map(text: str, env: dict | None = None,
+                     paths: list[str] | None = None,
+                     source_path: Path | str | None = None) -> ResolvedSource:
+    """Inline all .import directives and return text plus a source map.
 
     Search order for a relative import: the importing file's directory, every
     entry from [dasm.imports].paths, then the current working directory.  When
@@ -149,21 +158,30 @@ def resolve(text: str, env: dict | None = None,
     search_paths = list(paths or [])
 
     if source_path is not None:
-        source_path = Path(source_path)
+        root_path = Path(source_path)
         try:
-            source_path = source_path.resolve()
+            root_path = root_path.resolve()
         except OSError:
             pass
-        base_dir = source_path.parent
-        source_name = str(source_path)
-        stack = [source_path]
+        base_dir = root_path.parent
+        stack = [root_path]
     else:
+        root_path = Path("<source>")
         base_dir = Path.cwd()
-        source_name = "<source>"
         stack = []
 
     seen: set[Path] = set()
-    lines = _resolve_text(
-        text, base_dir, env, search_paths, seen, stack, source_name
+    lines, locations = _resolve_text(
+        text, base_dir, env, search_paths, seen, stack, root_path
     )
-    return "\n".join(lines)
+    return ResolvedSource(
+        text="\n".join(lines),
+        source_map=SourceMap(locations),
+    )
+
+
+def resolve(text: str, env: dict | None = None,
+            paths: list[str] | None = None,
+            source_path: Path | str | None = None) -> str:
+    """Inline all .import directives and return one combined source string."""
+    return resolve_with_map(text, env, paths, source_path).text
