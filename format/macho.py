@@ -35,8 +35,8 @@ S_ATTR_SOME_INSTRUCTIONS = 0x00000400
 
 class FormatMacho(Format):
 
-    def __init__(self):
-        self.ext = 'o'
+    # File extension
+    ext = 'o'
 
     def _mach_header_64(self,
         ncmds: int,               # Number of commands

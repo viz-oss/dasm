@@ -5,8 +5,8 @@ from format.base import Format
 
 class FormatBin(Format):
 
-    def __init__(self):
-        self.ext = 'bin'
+    # File extension
+    ext = 'bin'
 
     def output(self, words: list[int]) -> bytes:    
         return bytes(words)

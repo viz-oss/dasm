@@ -5,8 +5,8 @@ from format.base import Format
 
 class FormatHex(Format):
 
-    def __init__(self):
-        self.ext = 'hex'
+    # File extension
+    ext = 'hex'
 
     def output(self, words: list[int]) -> bytes:
         word_size = 2

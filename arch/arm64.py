@@ -6,11 +6,8 @@ from arch.base import Architecture
 
 class Arm64Architecture(Architecture):
 
-    word_size = 4
-
-    def __init__(self):
-        super().__init__()
-        self.endian = 'little'
+    word_size = 4     # 64bit CPU
+    endian = 'little' # little endian
 
     def mov(self, instr) -> list[int]:
         if instr.to_reg():

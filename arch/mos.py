@@ -41,9 +41,8 @@ from arch.base import Architecture, Relocation
 
 class MOSArchitecture(Architecture):
 
-    def __init__(self):
-        super().__init__()
-        self.endian = 'little'
+    word_size = 1     # 8-bit CPU
+    endian = 'little' # little endian
 
     def mov(self, instr) -> list[int]:
         if instr.to_reg():

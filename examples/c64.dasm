@@ -10,13 +10,14 @@
 ; 0xD021 = r0 = 14
 
 .import 'sys/c64/vic'
+; .start main ?
 
-start:
-  r0 = VIC_RED          ; lda #$02
-  VIC_FRAME_COLOR = r0  ; sta $d020 (kolor ramki)
-  r0 = VIC_BLUE         ; lda #$03
-  VIC_BG_COLOR = r0     ; sta $d021 (kolor tła)
-  .b 0x60               ; rts (return to os)
+exit:
+  .b 0x60
 
-  ;start()      ; jmp $080d
-  ;.b 0x4C, 0x0D, 0x08             ; jmp $080d
+main:
+  r0 = VIC_CYAN
+  VIC_FRAME_COLOR = r0
+  r0 = VIC_BLUE
+  VIC_BG_COLOR = r0
+  exit()

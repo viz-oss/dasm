@@ -19,9 +19,8 @@ class FormatPrg(FormatBin):
     # 0x0801 (default BASIC starting address allows launch by 'RUN')
     LOAD_ADDRESS = 0x0801
     BASIC_STUB_SIZE = 12
-
-    def __init__(self):
-        self.ext = 'prg'
+    # File extension
+    ext = 'prg'
 
     @property
     def origin(self) -> int:

@@ -18,12 +18,16 @@ class Architecture(ABC):
 
     # Size of one emitted item in bytes. Byte-oriented CPUs use 1.
     word_size: int = 1
+    # Endiannes
+    endian: Literal['little', 'big'] | None = None
 
     def __init__(self):
+        # Store labels
         self.labels: dict[str, int] = {}
+        # Relocation table
         self.relocations: list[Relocation] = []
+        # Position pointer
         self.origin: int = 0
-        self.endian: Literal['little', 'big'] | None = None
     
     def assembly(self, ast: [], origin: int = 0) -> list[int]:
         self.labels.clear()
