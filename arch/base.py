@@ -18,6 +18,8 @@ class Architecture(ABC):
 
     # Size of one emitted item in bytes. Byte-oriented CPUs use 1.
     word_size: int = 1
+    # Number of bytes occupied by an entry jump (0 = no jump support).
+    entry_jump_size: int = 0
     # Endiannes
     endian: Literal['little', 'big'] | None = None
 
@@ -28,15 +30,31 @@ class Architecture(ABC):
         self.relocations: list[Relocation] = []
         # Position pointer
         self.origin: int = 0
+        # Entry point (from .start)
+        self.start: str | None = None
+        self.entry: int | None = None
     
-    def assembly(self, ast: [], origin: int = 0) -> list[int]:
+    def assembly(self, ast: [], origin: int = 0,
+                 start: str | None = None,
+                 entry_jump: bool = False) -> list[int]:
         self.labels.clear()
         self.relocations.clear()
         self.origin = origin
+        self.start = start
+        self.entry = None
 
         output: list[int] = []
+        # The entry jump occupies the first bytes of the program, so every
+        # label defined below is automatically shifted by its size.
+        if start is not None and entry_jump:
+            jump = self.jump(start)
+            if self.entry_jump_size:
+                assert len(jump) == self.entry_jump_size
+            output += jump
         for instr in ast:
             match instr.__class__.__name__:
+                case 'Start':
+                    pass
                 case 'Label':
                     if instr.name in self.labels:
                         raise ValueError(f"Duplicate label: {instr.name}")
@@ -50,6 +68,10 @@ class Architecture(ABC):
                 case 'Text':
                     output += self.text(instr)
         self.apply_relocations(output)
+        if start is not None:
+            if start not in self.labels:
+                raise ValueError(f"Undefined start label: {start}")
+            self.entry = self.origin + self.labels[start]
         return output
 
     def apply_relocations(self, output: list[int]) -> None:
@@ -82,4 +104,8 @@ class Architecture(ABC):
 
     @abstractmethod
     def call(self, instr, offset: int = 0) -> list[int]:
+        raise NotImplementedError
+
+    def jump(self, target: str, offset: int = 0) -> list[int]:
+        """Emit an unconditional jump to a label (used for the entry point)."""
         raise NotImplementedError

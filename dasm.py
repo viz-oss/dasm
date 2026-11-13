@@ -9,6 +9,7 @@ import argparse, os, sys
 from lang.preprocess import preprocess_with_map
 from lang.imports import resolve_with_map
 from lang.syntax import parse
+from lang.abstract import Start
 from lang.exceptions import DasmSyntaxError
 import bootstrap.settings
 from bootstrap.modules import load_module
@@ -111,14 +112,23 @@ def main(argv = None):
     # Load format first so it can provide the origin for labels
     format = load_module('format', options['format'])
 
+    # Entry point from .start <label>
+    start = next((instr.target for instr in ast if isinstance(instr, Start)), None)
+    emit_entry_jump = start is not None and format.entry_jump
+
     # Assembly
     print("Assembly...", end='')
-    words = arch.assembly(ast, origin=getattr(format, 'origin', 0))
+    words = arch.assembly(
+        ast,
+        origin=format.origin,
+        start=start,
+        entry_jump=emit_entry_jump,
+    )
     print("OK")
 
     # Format output
     print("Format...", end='')
-    output = format.output(words)
+    output = format.output(words, entry=arch.entry)
     print(options['format'])
 
     # Save output file

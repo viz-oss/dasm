@@ -43,31 +43,153 @@ class MOSArchitecture(Architecture):
 
     word_size = 1     # 8-bit CPU
     endian = 'little' # little endian
+    entry_jump_size = 3  # JMP $xxxx
+
+    # Helpers
+
+    def _absolute16(self, address) -> list[int]:
+        assert isinstance(address, int)
+        assert 0 <= address < 65536
+        byte0, byte1 = address.to_bytes(2, byteorder=self.endian)
+        return [byte0, byte1]
+        
+    # MOV
 
     def mov(self, instr) -> list[int]:
         if instr.to_reg():
             if instr.fr_int():
-                assert 0 <= instr.fr.value < 255
-                return self._lda_immediate(instr)
+                assert 0 <= instr.fr.value < 256
+                match instr.to.n:
+                    case 0: return self._lda_immediate(instr)
+                    case 1: return self._ldx_immediate(instr)
+                    case 2: return self._ldy_immediate(instr)
+                raise NotImplementedError(instr)
         elif instr.to_ptr():
             if instr.fr_reg():
-                return self._sta_address(instr)
+                match instr.fr.n:
+                    case 0: return self._sta_absolute(instr)
+                    case 1: return self._stx_absolute(instr)
+                    case 2: return self._sty_absolute(instr)
+                raise NotImplementedError(instr)
         raise NotImplementedError(instr)
 
+    # LDA
+
     def _lda_immediate(self, instr) -> list[int]:
+        assert 0 <= instr.fr.value < 256
         return [0xA9, instr.fr.value]
 
-    def _sta_address(self, instr) -> list[int]:
-        address = instr.to.target.value
-        assert isinstance(address, int)
-        assert 0 <= address < 65535
-        byte0, byte1 = address.to_bytes(2, byteorder=self.endian)
-        return [0x8D, byte0, byte1]
+    def _lda_zero_page(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _lda_zero_page_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _lda_absolute(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _lda_absolute_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _lda_absolute_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _lda_indirect_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _lda_indirect_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    # LDX
+
+    def _ldx_immediate(self, instr) -> list[int]:
+        assert 0 <= instr.fr.value < 256
+        return [0xA2, instr.fr.value]
+
+    def _ldx_zero_page(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _ldx_zero_page_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _ldx_absolute(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _ldx_absolute_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+        
+    # LDY
+
+    def _ldy_immediate(self, instr) -> list[int]:
+        assert 0 <= instr.fr.value < 256
+        return [0xA0, instr.fr.value]
+
+    def _ldy_zero_page(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _ldy_zero_page_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _ldy_absolute(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _ldy_absolute_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    # STA
+
+    def _sta_zero_page(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sta_zero_page_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sta_absolute(self, instr) -> list[int]:
+        return [0x8D, *self._absolute16(instr.to.target.value)]
+
+    def _sta_absolute_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sta_absolute_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sta_indirect_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sta_indirect_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    # STX
+
+    def _stx_zero_page(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _stx_zero_page_y(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _stx_absolute(self, instr) -> list[int]:
+        return [0x8E, *self._absolute16(instr.to.target.value)]
+
+    # STY
+
+    def _sty_zero_page(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sty_zero_page_x(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def _sty_absolute(self, instr) -> list[int]:
+        return [0x8C, *self._absolute16(instr.to.target.value)]
+
+    # CALL
 
     def call(self, instr, offset: int = 0) -> list[int]:
+        return self.jump(instr.target, offset)
+
+    def jump(self, target: str, offset: int = 0) -> list[int]:
         # JMP $xxxx - the address is patched after all labels are known.
         self.relocations.append(
-            Relocation(offset + 1, instr.target, 2, self.endian)
+            Relocation(offset + 1, target, 2, self.endian)
         )
         return [0x4C, 0x00, 0x00]
 

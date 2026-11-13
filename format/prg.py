@@ -19,12 +19,14 @@ class FormatPrg(FormatBin):
     # 0x0801 (default BASIC starting address allows launch by 'RUN')
     LOAD_ADDRESS = 0x0801
     BASIC_STUB_SIZE = 12
+    # Program starts with JMP <entry> placed right after the BASIC stub.
+    entry_jump = True
     # File extension
     ext = 'prg'
 
     @property
     def origin(self) -> int:
-        """Memory address of the first byte of the assembled program."""
+        """Memory address of the first program byte (entry jump or code)."""
         return self.LOAD_ADDRESS + self.BASIC_STUB_SIZE
 
     def _header(self) -> list[int]:
@@ -45,7 +47,7 @@ class FormatPrg(FormatBin):
         assert len(stub) == self.BASIC_STUB_SIZE, len(stub)
         return stub
 
-    def output(self, words: list[int]) -> bytes:
+    def output(self, words: list[int], entry: int | None = None) -> bytes:
         return super().output([
             *self._header(),
             *self._basic_stub(),

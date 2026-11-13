@@ -3,7 +3,7 @@
 import pytest
 
 from arch.mos import MOSArchitecture
-from lang.abstract import Bytes, Call, Int, Label
+from lang.abstract import Bytes, Call, Int, Label, Start
 
 
 def test_call_backward_label():
@@ -56,3 +56,44 @@ def test_duplicate_label():
 
     with pytest.raises(ValueError, match='Duplicate label: start'):
         arch.assembly([Label('start'), Label('start')])
+
+
+def test_entry_jump_shifts_labels_and_relocations():
+    arch = MOSArchitecture()
+    ast = [
+        Start('main'),
+        Label('exit'),
+        Bytes(1, (Int(0x60),)),
+        Label('main'),
+        Bytes(1, (Int(0xA9),)),
+        Call('exit'),
+    ]
+
+    words = arch.assembly(ast, origin=0x080D, start='main', entry_jump=True)
+
+    assert words == [0x4C, 0x11, 0x08, 0x60, 0xA9, 0x4C, 0x10, 0x08]
+    assert arch.entry == 0x0811
+    assert arch.origin + arch.labels['exit'] == 0x0810
+
+
+def test_entry_without_jump():
+    arch = MOSArchitecture()
+    ast = [
+        Start('main'),
+        Label('exit'),
+        Bytes(1, (Int(0x60),)),
+        Label('main'),
+        Bytes(1, (Int(0xA9),)),
+    ]
+
+    words = arch.assembly(ast, origin=0x080D, start='main')
+
+    assert words == [0x60, 0xA9]
+    assert arch.entry == 0x080E
+
+
+def test_undefined_start_label():
+    arch = MOSArchitecture()
+
+    with pytest.raises(ValueError, match='Undefined start label: missing'):
+        arch.assembly([Start('missing')], start='missing')

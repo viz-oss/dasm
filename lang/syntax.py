@@ -6,7 +6,7 @@ import ast
 from typing import Dict
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
-from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Call
+from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Call, Start
 from .exceptions import DasmSyntaxError
 
 
@@ -25,6 +25,7 @@ statement: REG "=" (REG | NUMBER | NAME)
 
 directive: DIRECTIVE value_list
          | DIRECTIVE STRING
+         | DIRECTIVE NAME
 
 value_list: NUMBER ("," NUMBER)*
 
@@ -67,6 +68,8 @@ _TERMINAL_NAMES = {
 class ToAst(Transformer):
 
     def start(self, children):
+        if sum(isinstance(child, Start) for child in children) > 1:
+            raise DasmSyntaxError(message="duplicate .start directive")
         return list(children)
 
     def REG(self, tok):
@@ -104,6 +107,8 @@ class ToAst(Transformer):
             return Bytes(_BYTES_DIRECTIVES[name], arg)
         if isinstance(arg, str) and name == '.text':
             return Text(arg)
+        if isinstance(arg, str) and name == '.start':
+            return Start(arg)
         raise DasmSyntaxError(
             name.line, name.column,
             message=f"unknown or misused directive {name}",

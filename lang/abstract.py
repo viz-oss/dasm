@@ -73,6 +73,15 @@ class Call:
 
 
 @dataclass(frozen=True, slots=True)
+class Start:
+    """.start <label>
+
+    Entry point of the program.
+    """
+    target: str
+
+
+@dataclass(frozen=True, slots=True)
 class Bytes:
     """.bN <v1>, <v2>, ...
 

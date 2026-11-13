@@ -9,8 +9,8 @@
 ; 0xD020 = r0 = 13
 ; 0xD021 = r0 = 14
 
+.start main
 .import 'sys/c64/vic'
-; .start main ?
 
 exit:
   .b 0x60

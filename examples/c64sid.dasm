@@ -1,3 +1,31 @@
 ; Play SID music
 
+.import 'sys/c64/sid'
 
+start:
+  ; Zerowanie rejestru SID, aby zacząć od czystego stanu
+  r0 = 0
+  SID_VOICE_1_CONTROL = r0
+  
+  ; Ustawienie głośności
+  r0 = 0x0F
+  SID_FILTER_MODE_VOLUME = r0
+
+  ; Częstotliwość dźwięku (nuta A)
+  r0 = 0x11
+  SID_VOICE_1_FREQ_LSB = r0
+  r0 = 0x24
+  SID_VOICE_1_FREQ_MSB = r0
+  
+  ; Obwiednia ADSR (Attack/Decay oraz Sustain/Release)
+  r0 = 0x00            ; Szybki atak, krótki decay
+  SID_VOICE_1_ATTACK_DECAY = r0
+  r0 = 0xF0            ; Pełny sustain, brak release
+  SID_VOICE_1_SUSTAIN_RELEASE = r0
+
+  ; Uruchomienie dźwięku: Fala piłokształtna ($20) + Bit bramki ($01) = $21
+  r0 = 0x21
+  SID_VOICE_1_CONTROL = r0
+
+loop:
+  loop()

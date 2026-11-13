@@ -2,7 +2,7 @@
 
 from arch.mos import MOSArchitecture
 from format.prg import FormatPrg
-from lang.abstract import Bytes, Call, Int, Label
+from lang.abstract import Bytes, Call, Int, Label, Start
 
 
 def test_origin_points_after_basic_stub():
@@ -36,3 +36,33 @@ def test_call_is_relocated_to_prg_origin():
     output = fmt.output(words)
 
     assert output[-3:] == bytes([0x4C, 0x0D, 0x08])
+
+
+def test_start_adds_jump_to_entry_point():
+    arch = MOSArchitecture()
+    fmt = FormatPrg()
+    ast = [
+        Start('main'),
+        Label('exit'),
+        Bytes(1, (Int(0x60),)),
+        Label('main'),
+        Bytes(1, (Int(0xA9),)),
+        Call('exit'),
+    ]
+
+    words = arch.assembly(ast, origin=fmt.origin, start='main', entry_jump=True)
+    output = fmt.output(words, entry=arch.entry)
+
+    # Header + BASIC stub still points at 0x080D (SYS 2061).
+    assert output[:14] == bytes([
+        0x01, 0x08,
+        0x0B, 0x08,
+        0x0A, 0x00,
+        0x9E, 0x32, 0x30, 0x36, 0x31,
+        0x00,
+        0x00, 0x00,
+    ])
+    # JMP main, then exit and main shifted by 3 bytes.
+    assert output[14:17] == bytes([0x4C, 0x11, 0x08])
+    assert output[17:] == bytes([0x60, 0xA9, 0x4C, 0x10, 0x08])
+    assert arch.entry == 0x0811

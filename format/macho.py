@@ -131,7 +131,7 @@ class FormatMacho(Format):
             strsize,     # strsize
         )
 
-    def output(self, words: list[int]) -> bytes:
+    def output(self, words: list[int], entry: int | None = None) -> bytes:
         text_blob = struct.pack(f"<{len(words)}I", *words)
         text_size = len(text_blob)
         

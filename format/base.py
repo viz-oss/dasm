@@ -8,6 +8,12 @@ class Format(ABC):
     # File extension
     ext = ''
 
+    # Memory address of the first byte of the assembled code.
+    origin = 0
+
+    # Whether an entry jump must precede the assembled code.
+    entry_jump = False
+
     @abstractmethod
-    def output(self) -> bytes:
+    def output(self, words: list[int], entry: int | None = None) -> bytes:
         raise NotImplementedError

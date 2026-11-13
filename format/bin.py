@@ -8,7 +8,7 @@ class FormatBin(Format):
     # File extension
     ext = 'bin'
 
-    def output(self, words: list[int]) -> bytes:    
+    def output(self, words: list[int], entry: int | None = None) -> bytes:    
         return bytes(words)
 
 EXPORTS = FormatBin
