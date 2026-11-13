@@ -47,7 +47,7 @@ class Architecture(ABC):
         # The entry jump occupies the first bytes of the program, so every
         # label defined below is automatically shifted by its size.
         if start is not None and entry_jump:
-            jump = self.jump(start)
+            jump = self.jmp(start)
             if self.entry_jump_size:
                 assert len(jump) == self.entry_jump_size
             output += jump
@@ -106,6 +106,7 @@ class Architecture(ABC):
     def call(self, instr, offset: int = 0) -> list[int]:
         raise NotImplementedError
 
-    def jump(self, target: str, offset: int = 0) -> list[int]:
+    @abstractmethod
+    def jmp(self, target: str, offset: int = 0) -> list[int]:
         """Emit an unconditional jump to a label (used for the entry point)."""
         raise NotImplementedError

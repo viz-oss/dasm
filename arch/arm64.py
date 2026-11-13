@@ -51,11 +51,10 @@ class Arm64Architecture(Architecture):
         return int(bits, 2)
 
     def call(self, instr, offset: int = 0) -> list[int]:
-        """Encode a call instruction.
-
-        ARM64 call/label encoding is not implemented yet.
-        """
         raise NotImplementedError(instr)
+
+    def jmp(self, target: str, offset: int = 0) -> list[int]:
+        raise NotImplementedError
 
 
 EXPORTS = Arm64Architecture

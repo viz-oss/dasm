@@ -184,9 +184,9 @@ class MOSArchitecture(Architecture):
     # CALL
 
     def call(self, instr, offset: int = 0) -> list[int]:
-        return self.jump(instr.target, offset)
+        return self.jmp(instr.target, offset)
 
-    def jump(self, target: str, offset: int = 0) -> list[int]:
+    def jmp(self, target: str, offset: int = 0) -> list[int]:
         # JMP $xxxx - the address is patched after all labels are known.
         self.relocations.append(
             Relocation(offset + 1, target, 2, self.endian)
