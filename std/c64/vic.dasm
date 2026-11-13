@@ -1,0 +1,78 @@
+; VIC-II (MOS 6567/6569) registers
+;
+; The VIC-II register block is mapped at $D000-$D02E.
+; Registers are mirrored throughout the VIC address range; these
+; declarations use the primary I/O addresses.
+
+; Colors
+.set VIC_BLACK = 0
+.set VIC_WHITE = 1
+.set VIC_RED = 2
+.set VIC_CYAN = 3
+.set VIC_PURPLE = 4
+.set VIC_GREEN = 5
+.set VIC_BLUE = 6
+.set VIC_YELLOW = 7
+.set VIC_ORANGE = 8
+.set VIC_BROWN = 9
+.set VIC_LIGHT_RED = 10
+.set VIC_DARK_GREY = 11
+.set VIC_GREY = 12
+.set VIC_LIGHT_GREEN = 13
+.set VIC_LIGHT_BLUE = 14
+.set VIC_LIGHT_GREY = 15
+
+; Sprite 0-7 positions
+.set VIC_SPRITE_0_X = 0xD000
+.set VIC_SPRITE_0_Y = 0xD001
+.set VIC_SPRITE_1_X = 0xD002
+.set VIC_SPRITE_1_Y = 0xD003
+.set VIC_SPRITE_2_X = 0xD004
+.set VIC_SPRITE_2_Y = 0xD005
+.set VIC_SPRITE_3_X = 0xD006
+.set VIC_SPRITE_3_Y = 0xD007
+.set VIC_SPRITE_4_X = 0xD008
+.set VIC_SPRITE_4_Y = 0xD009
+.set VIC_SPRITE_5_X = 0xD00A
+.set VIC_SPRITE_5_Y = 0xD00B
+.set VIC_SPRITE_6_X = 0xD00C
+.set VIC_SPRITE_6_Y = 0xD00D
+.set VIC_SPRITE_7_X = 0xD00E
+.set VIC_SPRITE_7_Y = 0xD00F
+
+; VIC-II control and status registers
+.set VIC_SPRITE_X_MSB = 0xD010
+.set VIC_CONTROL_1 = 0xD011
+.set VIC_RASTER = 0xD012
+.set VIC_LIGHTPEN_X = 0xD013
+.set VIC_LIGHTPEN_Y = 0xD014
+.set VIC_SPRITE_ENABLE = 0xD015
+.set VIC_CONTROL_2 = 0xD016
+.set VIC_SPRITE_Y_EXPAND = 0xD017
+.set VIC_MEMORY_SETUP = 0xD018
+.set VIC_INTERRUPT = 0xD019
+.set VIC_INTERRUPT_ENABLE = 0xD01A
+.set VIC_SPRITE_PRIORITY = 0xD01B
+.set VIC_SPRITE_MULTICOLOR_ENABLE = 0xD01C
+.set VIC_SPRITE_X_EXPAND = 0xD01D
+.set VIC_SPRITE_SPRITE_COLLISION = 0xD01E
+.set VIC_SPRITE_BACKGROUND_COLLISION = 0xD01F
+
+; Memory registers
+.set VIC_FRAME_COLOR = 0xD020
+.set VIC_BG_COLOR = 0xD021
+.set VIC_BG_COLOR_1 = 0xD022
+.set VIC_BG_COLOR_2 = 0xD023
+.set VIC_BG_COLOR_3 = 0xD024
+.set VIC_SPRITE_MULTICOLOR_1 = 0xD025
+.set VIC_SPRITE_MULTICOLOR_2 = 0xD026
+
+; Individual sprite colors
+.set VIC_SPRITE_0_COLOR = 0xD027
+.set VIC_SPRITE_1_COLOR = 0xD028
+.set VIC_SPRITE_2_COLOR = 0xD029
+.set VIC_SPRITE_3_COLOR = 0xD02A
+.set VIC_SPRITE_4_COLOR = 0xD02B
+.set VIC_SPRITE_5_COLOR = 0xD02C
+.set VIC_SPRITE_6_COLOR = 0xD02D
+.set VIC_SPRITE_7_COLOR = 0xD02E

@@ -1,8 +1,9 @@
 ; Play SID music
 
-.import 'sys/c64/sid'
+.start main
+.import 'std/c64/sid'
 
-start:
+main:
   ; Zerowanie rejestru SID, aby zacząć od czystego stanu
   r0 = 0
   SID_VOICE_1_CONTROL = r0

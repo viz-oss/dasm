@@ -10,14 +10,21 @@
 ; 0xD021 = r0 = 14
 
 .start main
-.import 'sys/c64/vic'
+.import 'std/c64/sys.dasm'
+.import 'std/c64/vic.dasm'
 
-exit:
-  .b 0x60
+int:
+  .b 0
+  
+vic_frame_color:
+  r0 = VIC_LIGHT_BLUE
+  VIC_FRAME_COLOR = r0
+
+vic_bg_color:
+  r0 = VIC_LIGHT_GREY
+  VIC_BG_COLOR = r0
 
 main:
-  r0 = VIC_CYAN
-  VIC_FRAME_COLOR = r0
-  r0 = VIC_BLUE
-  VIC_BG_COLOR = r0
+  vic_frame_color()
+  vic_bg_color()
   exit()

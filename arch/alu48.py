@@ -1,3 +1,4 @@
+# DEPRECATED / IGNORE
 """
 Modul architektury: alu4
 4-bitowe ALU, 8 operacji (3-bit opcode), bez etykiet/skokow (samo ALU, nie CPU).
