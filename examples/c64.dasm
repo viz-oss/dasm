@@ -9,7 +9,7 @@
 ; 0xD020 = r0 = 13
 ; 0xD021 = r0 = 14
 
-.start 开始
+.start 🚀
 .import 'platform/c64/sys.dasm'
 .import 'platform/c64/vic.dasm'
 
@@ -22,7 +22,7 @@ vic_frame_color: ; tu może mapować dla preprocesora vic_frame_color(color: r0)
 vic_bg_color:
   VIC_BG_COLOR = r0
 
-开始:
+🚀:
   ;.b 0x48 ; push r0 na stack
   ; vic_frame_color(r0 = VIC_BROWN) to ciekawe - zgadzało by się z grupowaniem, może być vic_frame_color(r0 = foo(r0 = 1)) itd.
   ; domyślnie można bez r0 vic_frame_color(VIC_BROWN) wtedy będzie warstwa kompatybilna ze znanymi językami

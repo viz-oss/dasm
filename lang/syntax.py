@@ -8,9 +8,10 @@ from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
 from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Call, Start
 from .exceptions import DasmSyntaxError
+from .lexical import expand
 
 
-GRAMMAR = r'''
+GRAMMAR = expand(r'''
 start: (line? _NL)*
 
 ?line: LABEL
@@ -30,9 +31,9 @@ directive: DIRECTIVE value_list
 value_list: NUMBER ("," NUMBER)*
 
 // --- terminals: identifiers
-REG.3: /r\d+(?![A-Za-z_0-9])/
-NAME: /(?!r\d+(?![A-Za-z_0-9]))[A-Za-z_]\w*/
-LABEL.2: /(?!r\d+:)[A-Za-z_]\w*:/
+REG.3: /r[0-9]+(?!<<CONT>>)/
+NAME: /(?!<<REG>>(?!<<CONT>>))<<IDENT>>/
+LABEL.2: /(?!<<REG>>:)<<IDENT>>:/
 DIRECTIVE: /\.[a-z]\w*/
 
 // --- terminals: literals
@@ -46,7 +47,7 @@ _NL: /(\r?\n)+/
 
 %ignore COMMENT
 %ignore WHITESPACE
-'''
+''')
 
 
 _BYTES_DIRECTIVES = {'.b': 1, '.b8': 1, '.b16': 2, '.b32': 4, '.b64': 8}

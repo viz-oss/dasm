@@ -5,28 +5,27 @@ Works on tokens, not on raw text, so a constant `art` is never substituted
 inside `start:`, `.art`, a string literal or a comment.
 """
 
-import ast
-import json
-import re
+import ast, json, re, unicodedata
 from dataclasses import dataclass
 from .exceptions import DasmSyntaxError
+from .lexical import expand, IDENT
 from .sourcemap import ColumnMap, ColumnSegment
 
 
-_TOKEN_RE = re.compile(r'''
+_TOKEN_RE = re.compile(expand(r'''
     (?P<comment>;[^\r\n]*|\#[^\r\n]*|//[^\r\n]*)
   | (?P<string>"(?:\\.|[^"\\\r\n])*")
-  | (?P<label>[A-Za-z_]\w*:)
+  | (?P<label><<IDENT>>:)
   | (?P<directive>\.[a-z]\w*)
-  | (?P<number>\d\w*)
-  | (?P<name>[A-Za-z_]\w*)
+  | (?P<number>[0-9]\w*)
+  | (?P<name><<IDENT>>)
   | (?P<ws>[ \t]+)
   | (?P<other>.)
-''', re.VERBOSE)
+'''), re.VERBOSE)
 
-_REG_RE = re.compile(r'r\d+')
-_NUM_RE = re.compile(r'-?\d\w*')
-_NAME_RE = re.compile(r'[A-Za-z_]\w*')
+_REG_RE = re.compile(r'r[0-9]+')
+_NUM_RE = re.compile(r'-?[0-9]\w*')
+_NAME_RE = re.compile(IDENT)
 
 Value = int | str
 
@@ -104,14 +103,14 @@ def _render(value: Value) -> str:
 
 # --- public API -------------------------------------------------------------
 
-def preprocess_with_map(text: str,
-                        defines: dict[str, Value] | None = None
-                        ) -> PreprocessedSource:
+def preprocess_with_map(text: str, defines: dict[str, Value] | None = None) -> PreprocessedSource:
     """Process .set lines and substitute constants, keeping column maps.
 
     defines: constants from the project config; visible from the first line
     and not overridable by .set. A constant must be defined before use.
     """
+    text = unicodedata.normalize('NFC', text)
+    defines = {unicodedata.normalize('NFC', k): v for k, v in (defines or {}).items()}
     external = {k: _check_config(k, v) for k, v in (defines or {}).items()}
     consts: dict[str, Value] = dict(external)
     defined: set[str] = set()
