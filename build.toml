@@ -7,5 +7,5 @@ debug = false
 OS = "c64"
 
 [dasm.imports]
-paths = [".."]
-repos = ["github.com/viz-oss/dasm-stdlib/"]
+paths = ["../lib"]
+repos = ["github.com/viz-oss/dasm-lib-std/"]
