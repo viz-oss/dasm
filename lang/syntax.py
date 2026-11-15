@@ -6,7 +6,7 @@ import ast
 from typing import Dict
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
-from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Call, Start
+from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Arg, Call, Start
 from .exceptions import DasmSyntaxError
 from .lexical import expand
 
@@ -19,7 +19,9 @@ start: (line? _NL)*
      | directive
      | call
 
-call: NAME "(" ")"
+call: NAME "(" args? ")"
+args: arg ("," arg)*
+arg: REG "=" (REG | NUMBER | NAME)
 
 statement: REG "=" (REG | NUMBER | NAME)
          | (NUMBER | NAME) "=" REG         
@@ -99,8 +101,18 @@ class ToAst(Transformer):
     def NAME(self, tok):
         return str(tok)
         
+    def arg(self, c):
+        reg, value = c
+        if isinstance(value, str):
+            value = Ptr(value)
+        return Arg(reg, value)
+
+    def args(self, c):
+        return tuple(c)
+
     def call(self, c):
-        return Call(c[0])
+        target, *rest = c
+        return Call(target, rest[0] if rest else ())
 
     def directive(self, c):
         name, arg = c

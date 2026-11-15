@@ -1,42 +1,10 @@
 ; Program: Zmiana koloru ramki i tła w C64
-;.import 'sys/c64/vic'
-; start:
-;   vic_frame_color(13)
-;   vic_bg_color(14)
-;   start()
-
-; Może takie coś co pomoże w potokowaniu
-; 0xD020 = r0 = 13
-; 0xD021 = r0 = 14
 
 .start 🚀
 .import 'platform/c64/sys.dasm'
 .import 'platform/c64/vic.dasm'
-
-;int:
-;  .b 0
   
-vic_frame_color: ; tu może mapować dla preprocesora vic_frame_color(color: r0):
-  VIC_FRAME_COLOR = r0
-
-vic_bg_color:
-  VIC_BG_COLOR = r0
-
 🚀:
-  ;.b 0x48 ; push r0 na stack
-  ; vic_frame_color(r0 = VIC_BROWN) to ciekawe - zgadzało by się z grupowaniem, może być vic_frame_color(r0 = foo(r0 = 1)) itd.
-  ; domyślnie można bez r0 vic_frame_color(VIC_BROWN) wtedy będzie warstwa kompatybilna ze znanymi językami
-  ; też łatwy dostęp do stosu może st0 st1? i do cache/heap/zero page i wtedy wybrać co chcę
-  ; nazwy funkcji moga być puste, () to tylko ozdobnik
-  ; strzałki to call czyli może być -> vic_frame_color hm ale wtedy stracę nested wywołania vic_frame_color(r0 = foo(r0 = 1))
-  ; albo -> vic_frame_color(VIC_BROWN)
-  ; albo potokowe r0 = VIC_BROWN -> vic_frame_color
-  ; tak można robić funkcje strzałkowe inline
-  ; foo = (a, b) -> a + b;
-  ; odpowiednik
-  ; const = (a, b) => a + b;
-  r0 = VIC_GREY
-  vic_frame_color() ; vic_frame_color(r0 = VIC_BROWN)
-  r0 = VIC_LIGHT_GREY
-  vic_bg_color()
+  ;vic_frame_color(r0 = VIC_PURPLE)
+  vic_bg_color(r0 = VIC_RED)
   exit()

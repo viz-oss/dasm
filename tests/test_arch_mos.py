@@ -3,7 +3,7 @@
 import pytest
 
 from arch.mos import MOSArchitecture
-from lang.abstract import Bytes, Call, Int, Label, Start
+from lang.abstract import Arg, Bytes, Call, Int, Label, Reg, Start
 
 
 def test_call_backward_label():
@@ -30,6 +30,19 @@ def test_call_forward_label():
     words = arch.assembly(ast, origin=0x080D)
 
     assert words == [0x4C, 0x10, 0x08, 0x60]
+
+
+def test_call_arguments_are_emitted_before_call_and_relocated_after_them():
+    arch = MOSArchitecture()
+    ast = [
+        Call('start', (Arg(Reg(0), Int(1)),)),
+        Label('start'),
+        Bytes(1, (Int(0x60),)),
+    ]
+
+    words = arch.assembly(ast, origin=0x080D)
+
+    assert words == [0xA9, 0x01, 0x4C, 0x12, 0x08, 0x60]
 
 
 def test_call_uses_origin():

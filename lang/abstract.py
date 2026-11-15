@@ -64,12 +64,29 @@ class Label:
 
 
 @dataclass(frozen=True, slots=True)
-class Call:
-    """name()
+class Arg:
+    """r<N> = <value>   (inside a call)
 
-    Call of a symbol. Execution continues after the call returns.
+    Value passed to a call in a virtual register.
     """
+    reg: Reg
+    value: Reg | Int | Ptr
+
+    def val_reg(self):
+        return isinstance(self.value, Reg)
+
+    def val_int(self):
+        return isinstance(self.value, Int)
+
+    def val_ptr(self):
+        return isinstance(self.value, Ptr)
+
+
+@dataclass(frozen=True, slots=True)
+class Call:
+    """name() or name(r0 = 1, r1 = 2)"""
     target: str
+    args: tuple[Arg, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

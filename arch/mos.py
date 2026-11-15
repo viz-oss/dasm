@@ -37,6 +37,7 @@ No operation (No Operation), setting or clearing flags (for example, carry or in
 """
 
 from arch.base import Architecture, Relocation
+from lang.abstract import Mov
 
 
 class MOSArchitecture(Architecture):
@@ -52,6 +53,9 @@ class MOSArchitecture(Architecture):
         assert 0 <= address < 65536
         byte0, byte1 = address.to_bytes(2, byteorder=self.endian)
         return [byte0, byte1]
+        
+    def _arg(self, instr):
+        return self.mov(Mov(to = instr.reg, fr = instr.value))
         
     # MOV
 
@@ -184,7 +188,8 @@ class MOSArchitecture(Architecture):
     # CALL
 
     def call(self, instr, offset: int = 0) -> list[int]:
-        return self.jmp(instr.target, offset)
+        args = [subarg for arg in instr.args for subarg in self._arg(arg)]
+        return args + self.jmp(instr.target, offset + len(args))
 
     def jmp(self, target: str, offset: int = 0) -> list[int]:
         # JMP $xxxx - the address is patched after all labels are known.
