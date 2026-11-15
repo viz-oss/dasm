@@ -5,6 +5,7 @@
 .import 'platform/c64/vic.dasm'
 
 🚀:
-  ;vic_frame_color(color = VIC_PURPLE)
+  vic_frame_color(color = VIC_PURPLE)
   vic_bg_color(color = VIC_CYAN)
-  exit()
+  .b 0x60
+  ;exit()

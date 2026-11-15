@@ -67,6 +67,8 @@ class Architecture(ABC):
                     output += self.bytes(instr)
                 case 'Text':
                     output += self.text(instr)
+                case 'Return':
+                    output += self.ret(instr)
         self.apply_relocations(output)
         if start is not None:
             if start not in self.labels:
@@ -104,6 +106,10 @@ class Architecture(ABC):
 
     @abstractmethod
     def call(self, instr, offset: int = 0) -> list[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ret(self, instr) -> list[int]:
         raise NotImplementedError
 
     @abstractmethod

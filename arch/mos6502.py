@@ -188,15 +188,25 @@ class MOSArchitecture(Architecture):
     # CALL
 
     def call(self, instr, offset: int = 0) -> list[int]:
-        args = [subarg for arg in instr.args for subarg in self._arg(arg)]
-        return args + self.jmp(instr.target, offset + len(args))
+        args_bytes = [subarg for arg in instr.args for subarg in self._arg(arg)]
+        call_bytes = [0x20, 0x00, 0x00] # JSR, 0x00, 0x00 address ready for a relocation
+        self.relocations.append(
+            Relocation(offset + 1 + len(args_bytes), instr.target, 2, self.endian)
+        )
+        return args_bytes + call_bytes
+
+    # RET
+
+    def ret(self, instr) -> list[int]:
+        return [0x60]
+
+    # JMP
 
     def jmp(self, target: str, offset: int = 0) -> list[int]:
-        # JMP $xxxx - the address is patched after all labels are known.
         self.relocations.append(
             Relocation(offset + 1, target, 2, self.endian)
         )
-        return [0x4C, 0x00, 0x00]
+        return [0x4C, 0x00, 0x00] # JMP, 0x00, 0x00 address ready for a relocation
 
 
 EXPORTS = MOSArchitecture
