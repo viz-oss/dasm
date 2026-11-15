@@ -124,3 +124,9 @@ class Return:
     Leaves the current call. The optional value is a literal number.
     """
     value: Int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Exit:
+    """Architecture-specific program exit directive."""
+    pass

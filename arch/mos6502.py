@@ -200,6 +200,11 @@ class MOSArchitecture(Architecture):
     def ret(self, instr) -> list[int]:
         return [0x60]
 
+    # EXIT
+
+    def exit(self, instr) -> list[int]:
+        return [0x60]  # RTS
+
     # JMP
 
     def jmp(self, target: str, offset: int = 0) -> list[int]:

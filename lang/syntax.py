@@ -7,7 +7,7 @@ from typing import Dict
 from collections import UserList
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
-from .abstract import Start, Reg, Int, Mov, Label, Param, Bytes, Text, Ptr, Arg, Call, Return
+from .abstract import Start, Reg, Int, Mov, Label, Param, Bytes, Text, Ptr, Arg, Call, Return, Exit
 from .exceptions import DasmSyntaxError
 from .lexical import expand
 
@@ -32,7 +32,8 @@ arg: NAME "=" (REG | NUMBER | NAME)
 statement: REG "=" (REG | NUMBER | NAME)
          | (NUMBER | NAME) "=" REG         
 
-directive: DIRECTIVE value_list
+directive: DIRECTIVE
+         | DIRECTIVE value_list
          | DIRECTIVE STRING
          | DIRECTIVE NAME
 
@@ -147,7 +148,16 @@ class ToAst(Transformer):
         return Call(target, rest[0] if rest else (), result)
     
     def directive(self, c):
-        name, arg = c
+        name, *args = c
+        if not args and name == '.exit':
+            return Exit()
+        if len(args) != 1:
+            raise DasmSyntaxError(
+                name.line, name.column,
+                message=f"unknown or misused directive {name}",
+                map_columns=True
+            )
+        arg = args[0]
         if isinstance(arg, tuple) and name in _BYTES_DIRECTIVES:
             return Bytes(_BYTES_DIRECTIVES[name], arg)
         if isinstance(arg, str) and name == '.text':
