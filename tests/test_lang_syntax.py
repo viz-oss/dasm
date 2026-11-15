@@ -30,17 +30,29 @@ def test_label():
 
 def test_call():
     ast = parse("""
+        foo:
         foo()
         r0 = foo()
         r0 = bar
-        foo(color = 1, size = r5, buf = label)
+        foo2(color: r0, size: r1, buf: r2):
+        foo2(color = 1, size = 2, buf = 3)
     """)
     
     assert ast == [
+        Label('foo'),
         Call('foo'),
         Call('foo', (), Reg(0)),
         Mov(Reg(0), Ptr('bar')),
-        Call('foo', (Arg('color', Int(1)), Arg('size', Reg(5)), Arg('buf', Ptr('label'))))
+        Label('foo2', (
+            Param('color', Reg(0)),
+            Param('size', Reg(1)),
+            Param('buf', Reg(2)))
+        ),
+        Call('foo2', (
+            Arg('color', Int(1), _reg=Reg(n=0)),
+            Arg('size', Int(2), _reg=Reg(n=1)),
+            Arg('buf', Int(3), _reg=Reg(n=2)))
+        )
     ]
 
 
@@ -66,8 +78,10 @@ def test_unicode():
        start🚀:
        żółć:
        r0 = żółć
+       foo_é:
        foo_é()
-       r1🚀()
+       r1x:
+       start🚀()
        r1x()
     """)
 
@@ -75,7 +89,9 @@ def test_unicode():
         Label('start🚀'),
         Label('żółć'),
         Mov(Reg(0), Ptr('żółć')),
+        Label('foo_é'),
         Call('foo_é'),
-        Call('r1🚀'),
+        Label('r1x'),
+        Call('start🚀'),
         Call('r1x'),
     ]

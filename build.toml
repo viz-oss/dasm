@@ -1,5 +1,5 @@
 [dasm.options]
-arch = "mos"
+arch = "mos6502"
 format = "prg"
 debug = false
 

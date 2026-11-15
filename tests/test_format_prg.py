@@ -1,6 +1,6 @@
 """Unit tests for the C=64 PRG format."""
 
-from arch.mos import MOSArchitecture
+from arch.mos6502 import MOSArchitecture
 from format.prg import FormatPrg
 from lang.abstract import Bytes, Call, Int, Label, Start
 
