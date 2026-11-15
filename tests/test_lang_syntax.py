@@ -1,7 +1,7 @@
 """Unit tests for parsing syntax"""
 
 import pytest
-from lang.abstract import Start, Label, Mov, Reg, Ptr, Arg, Call, Int
+from lang.abstract import Start, Label, Mov, Reg, Ptr, Arg, Call, Int, Param
 from lang.syntax import parse, DasmSyntaxError
 
 
@@ -14,7 +14,7 @@ def test_missing_value():
     assert 'number' in str(e.value) and 'register' in str(e.value)
 
 
-def test_error_label():
+def test_label():
     with pytest.raises(DasmSyntaxError) as e:
         parse('r0:')
 
@@ -26,6 +26,22 @@ def test_error_label():
 
     assert e.value.line == 1
     assert e.value.col == 2
+
+
+def test_call():
+    ast = parse("""
+        foo()
+        r0 = foo()
+        r0 = bar
+        foo(color = 1, size = r5, buf = label)
+    """)
+    
+    assert ast == [
+        Call('foo'),
+        Call('foo', (), Reg(0)),
+        Mov(Reg(0), Ptr('bar')),
+        Call('foo', (Arg('color', Int(1)), Arg('size', Reg(5)), Arg('buf', Ptr('label'))))
+    ]
 
 
 def test_start_directive():
@@ -46,7 +62,14 @@ def test_duplicate_start_directive():
 
 
 def test_unicode():
-    ast = parse('start🚀:\nżółć:\nr0 = żółć\nfoo_é()\nr1🚀()\nr1x()')
+    ast = parse("""
+       start🚀:
+       żółć:
+       r0 = żółć
+       foo_é()
+       r1🚀()
+       r1x()
+    """)
 
     assert ast == [
         Label('start🚀'),
@@ -55,12 +78,4 @@ def test_unicode():
         Call('foo_é'),
         Call('r1🚀'),
         Call('r1x'),
-    ]
-
-def test_call():
-    ast = parse("foo()\nfoo(r0 = 1)\nfoo(r0 = 1, r1 = r2, r3 = label)")
-    
-    assert ast == [Call('foo'),
-        Call('foo', (Arg(Reg(0), Int(1)),)),
-        Call('foo', (Arg(Reg(0), Int(1)), Arg(Reg(1), Reg(2)), Arg(Reg(3), Ptr('label'))))
     ]

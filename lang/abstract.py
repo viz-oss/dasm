@@ -55,38 +55,40 @@ class Mov:
 
 
 @dataclass(frozen=True, slots=True)
-class Label:
-    """name:
-    
-    Label
-    """
+class Param:
+    """name: rN   (in a label definition)"""
     name: str
+    reg: Reg
+
+
+@dataclass(frozen=True, slots=True)
+class Label:
+    """name:  or  name(p1: r0, p2: r1):"""
+    name: str
+    params: tuple[Param, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class Arg:
-    """r<N> = <value>   (inside a call)
+    """<name> = <value>   (inside a call)
 
-    Value passed to a call in a virtual register.
+    Value passed to the parameter `name` declared in the target's label.
+    The register is NOT known here; it comes from the label's Param.
     """
-    reg: Reg
+    name: str
     value: Reg | Int | Ptr
-
-    def val_reg(self):
-        return isinstance(self.value, Reg)
-
-    def val_int(self):
-        return isinstance(self.value, Int)
-
-    def val_ptr(self):
-        return isinstance(self.value, Ptr)
 
 
 @dataclass(frozen=True, slots=True)
 class Call:
-    """name() or name(r0 = 1, r1 = 2)"""
+    """name(...)  or  r<N> = name(...)
+
+    `result` is the register receiving the value of `return <int>`;
+    None means the result is discarded.
+    """
     target: str
     args: tuple[Arg, ...] = ()
+    result: Reg | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,3 +114,12 @@ class Bytes:
 @dataclass(frozen=True, slots=True)
 class Text:
     value: str
+
+
+@dataclass(frozen=True, slots=True)
+class Return:
+    """return  or  return <int>
+
+    Leaves the current call. The optional value is a literal number.
+    """
+    value: Int | None = None

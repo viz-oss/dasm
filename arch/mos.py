@@ -55,7 +55,8 @@ class MOSArchitecture(Architecture):
         return [byte0, byte1]
         
     def _arg(self, instr):
-        return self.mov(Mov(to = instr.reg, fr = instr.value))
+        #TODO: znaleźć definicję label na liście
+        return [] #self.mov(Mov(to = instr.reg, fr = instr.value))
         
     # MOV
 

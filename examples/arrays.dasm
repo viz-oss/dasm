@@ -1,0 +1,6 @@
+; Każdy array to blok w pamięci albo jednego typu, albo różnych typów (lista dwykierunkowa)
+; Jakiekolwiek operacje to iteratory tylko na tych samych danych, żadnego tworzenia kopii
+; map, filter, flatmap [[1, 2], [3, 4], 5, 6 ] -> [1,2,3,4,5,6]
+; również mutowalośc/locki włączane poprzeziterator dostępowy
+; być może starczy nawet jeden uber-iterator a sposób iteracji i inne rzeczy to tylko flagi
+; wielowymiarowe/macierze i operacje simd/GPU na nich

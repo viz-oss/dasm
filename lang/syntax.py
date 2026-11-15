@@ -6,7 +6,7 @@ import ast
 from typing import Dict
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
-from .abstract import Reg, Int, Mov, Label, Bytes, Text, Ptr, Arg, Call, Start
+from .abstract import Start, Reg, Int, Mov, Label, Param, Bytes, Text, Ptr, Arg, Call, Return
 from .exceptions import DasmSyntaxError
 from .lexical import expand
 
@@ -15,13 +15,18 @@ GRAMMAR = expand(r'''
 start: (line? _NL)*
 
 ?line: LABEL
+     | label_def
      | statement
      | directive
      | call
+     | return_stmt
 
-call: NAME "(" args? ")"
+label_def: NAME "(" params? ")" ":"
+params: param ("," param)*
+param: NAME ":" REG
+call: (REG "=")? NAME "(" args? ")"
 args: arg ("," arg)*
-arg: REG "=" (REG | NUMBER | NAME)
+arg: NAME "=" (REG | NUMBER | NAME)
 
 statement: REG "=" (REG | NUMBER | NAME)
          | (NUMBER | NAME) "=" REG         
@@ -32,11 +37,14 @@ directive: DIRECTIVE value_list
 
 value_list: NUMBER ("," NUMBER)*
 
+return_stmt: RETURN NUMBER?
+
 // --- terminals: identifiers
 REG.3: /r[0-9]+(?!<<CONT>>)/
-NAME: /(?!<<REG>>(?!<<CONT>>))<<IDENT>>/
-LABEL.2: /(?!<<REG>>:)<<IDENT>>:/
+NAME: /(?!<<REG>>(?!<<CONT>>))(?!return(?!<<CONT>>))<<IDENT>>/
+LABEL.2: /(?!<<REG>>:)(?!return:)<<IDENT>>:/
 DIRECTIVE: /\.[a-z]\w*/
+RETURN.4: /return(?!<<CONT>>)/
 
 // --- terminals: literals
 NUMBER: /-?(?:0[xX][0-9a-fA-F]+(?:_[0-9a-fA-F]+)*|\d+(?:_\d+)*)/
@@ -65,6 +73,7 @@ _TERMINAL_NAMES = {
     'COMMA': '","',
     'LPAR': '"("',
     'RPAR': '")"',
+    'COLON': '":"'
 }
 
 
@@ -84,6 +93,17 @@ class ToAst(Transformer):
     def LABEL(self, tok):
         return Label(str(tok)[:-1])
 
+    def param(self, c):
+        name, reg = c
+        return Param(name, reg)
+
+    def params(self, c):
+        return tuple(c)
+
+    def label_def(self, c):
+        name, *rest = c
+        return Label(name, rest[0] if rest else ())
+    
     def statement(self, c):
         to, fr = c
         if not isinstance(to, Reg):
@@ -102,18 +122,21 @@ class ToAst(Transformer):
         return str(tok)
         
     def arg(self, c):
-        reg, value = c
+        name, value = c
         if isinstance(value, str):
             value = Ptr(value)
-        return Arg(reg, value)
-
+        return Arg(name, value)
+    
     def args(self, c):
         return tuple(c)
 
     def call(self, c):
+        result = None
+        if isinstance(c[0], Reg):
+            result, *c = c
         target, *rest = c
-        return Call(target, rest[0] if rest else ())
-
+        return Call(target, rest[0] if rest else (), result)
+    
     def directive(self, c):
         name, arg = c
         if isinstance(arg, tuple) and name in _BYTES_DIRECTIVES:
@@ -127,6 +150,10 @@ class ToAst(Transformer):
             message=f"unknown or misused directive {name}",
             map_columns=True
         )
+
+    def return_stmt(self, c):
+        # c[0] is the RETURN token; the number (if any) is c[1]
+        return Return(c[1] if len(c) > 1 else None)
 
 
 _parser = Lark(GRAMMAR, parser='lalr')
