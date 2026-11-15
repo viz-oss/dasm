@@ -1,5 +1,0 @@
-; System functions
-
-; Exit to OS
-exit:
-  .b 0x60
