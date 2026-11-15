@@ -50,7 +50,7 @@ class MOSArchitecture(Architecture):
 
     def _absolute16(self, address) -> list[int]:
         assert isinstance(address, int)
-        assert 0 <= address < 65536
+        assert 0 <= address <= 65535
         byte0, byte1 = address.to_bytes(2, byteorder=self.endian)
         return [byte0, byte1]
         
@@ -62,7 +62,7 @@ class MOSArchitecture(Architecture):
     def mov(self, instr) -> list[int]:
         if instr.to_reg():
             if instr.fr_int():
-                assert 0 <= instr.fr.value < 256
+                assert 0 <= instr.fr.value <= 255
                 match instr.to.n:
                     case 0: return self._lda_immediate(instr)
                     case 1: return self._ldx_immediate(instr)
@@ -80,7 +80,7 @@ class MOSArchitecture(Architecture):
     # LDA
 
     def _lda_immediate(self, instr) -> list[int]:
-        assert 0 <= instr.fr.value < 256
+        assert 0 <= instr.fr.value <= 255
         return [0xA9, instr.fr.value]
 
     def _lda_zero_page(self, instr) -> list[int]:
@@ -107,7 +107,7 @@ class MOSArchitecture(Architecture):
     # LDX
 
     def _ldx_immediate(self, instr) -> list[int]:
-        assert 0 <= instr.fr.value < 256
+        assert 0 <= instr.fr.value <= 255
         return [0xA2, instr.fr.value]
 
     def _ldx_zero_page(self, instr) -> list[int]:
@@ -125,7 +125,7 @@ class MOSArchitecture(Architecture):
     # LDY
 
     def _ldy_immediate(self, instr) -> list[int]:
-        assert 0 <= instr.fr.value < 256
+        assert 0 <= instr.fr.value <= 255
         return [0xA0, instr.fr.value]
 
     def _ldy_zero_page(self, instr) -> list[int]:
