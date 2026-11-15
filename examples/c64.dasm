@@ -3,8 +3,8 @@
 .start 🚀
 .import 'platform/c64/sys.dasm'
 .import 'platform/c64/vic.dasm'
-  
+
 🚀:
   ;vic_frame_color(color = VIC_PURPLE)
-  vic_bg_color(color = VIC_RED)
+  vic_bg_color(color = VIC_CYAN)
   exit()

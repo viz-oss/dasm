@@ -68,7 +68,7 @@ class Label:
     params: tuple[Param, ...] = ()
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=False, slots=True)
 class Arg:
     """<name> = <value>   (inside a call)
 
@@ -77,6 +77,7 @@ class Arg:
     """
     name: str
     value: Reg | Int | Ptr
+    _reg: Reg | None = None # cached register from Label's Param
 
 
 @dataclass(frozen=True, slots=True)

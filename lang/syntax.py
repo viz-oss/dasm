@@ -4,6 +4,7 @@ Lark parser
 
 import ast
 from typing import Dict
+from collections import UserList
 from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
 from .abstract import Start, Reg, Int, Mov, Label, Param, Bytes, Text, Ptr, Arg, Call, Return
@@ -76,6 +77,14 @@ _TERMINAL_NAMES = {
     'COLON': '":"'
 }
 
+
+class AST(UserList):
+    
+    def filter(self, typeof = None, name: str = None) -> AST:
+        return AST([
+            element for element in self.data
+            if (typeof is None or isinstance(element, typeof)) and (name is None or (hasattr(element, 'name') and element.name == name))
+        ])
 
 class ToAst(Transformer):
 
@@ -177,7 +186,7 @@ def parse(text: str) -> list:
             context=True
         ) from e
     try:
-        return ToAst().transform(parsed)
+        abstract = AST(ToAst().transform(parsed))
     except VisitError as e:
         if isinstance(e.orig_exc, DasmSyntaxError):
             raise e.orig_exc from None
@@ -188,4 +197,22 @@ def parse(text: str) -> list:
             message=f"invalid literal: {e.orig_exc}",
             map_columns=True
         ) from e
-    
+
+    labels = abstract.filter(typeof=Label)
+    calls = abstract.filter(typeof=Call)
+    for call in calls:
+        label = labels.filter(name=call.target)
+        if len(label) == 0:
+            raise DasmSyntaxError(
+                message=f"Label {call.target} not found"
+            )
+        if len(label[0].params) != len(call.args):
+            raise DasmSyntaxError(
+                message=f"Args mismatch in {call.target}"
+            )
+        for n in range(len(call.args)):
+            arg = call.args[n]
+            param = label[0].params[n]
+            arg._reg = param.reg
+
+    return abstract
