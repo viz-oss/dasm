@@ -5,6 +5,28 @@ The ALU is not a general-purpose CPU.  It emits one byte per instruction:
     [7:5] opcode | [4:1] A | [0] carry-in override
 
 The second ALU input is supplied by the hardware and is therefore not encoded.
+
+Format slowa instrukcji (8 bit):
+
+```
+[7:5] opcode (3 bity)
+[4:1] operand A (4 bity, 0-15)
+[0]   Cn override (0/1, opcjonalny)
+```
+
+Mnemoniki: `ADD, SUB, AND, OR, XOR, NOT, SHL, SHR`
+
+```asm
+ADD 5        ; A=5, Cn=0
+ADD 5, 1     ; A=5, Cn=1
+SUB 10
+AND 0b1010   ; operandy: dec, 0x.. (hex), 0b.. (bin)
+SHR 8
+```
+
+Tryb `--microcode` generuje tabele do zaprogramowania EEPROM dekodera
+opcode -> sygnaly 74181 (S3 S2 S1 S0, M, Cn) + bit “external shift enable” dla SHR.
+Adres EEPROM = 3-bit opcode, dane = 7 bitow.
 """
 
 from arch.base import Architecture
