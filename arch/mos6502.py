@@ -129,21 +129,36 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _ldx_absolute(self, instr) -> list[int]:
+        """
+        Encodes the instruction to load a value into the X register using absolute addressing.
+        """
         raise NotImplementedError(instr)
 
     def _ldx_absolute_y(self, instr) -> list[int]:
+        """
+        Encodes the instruction to load a value into the X register using absolute addressing and Y displacement.
+        """
         raise NotImplementedError(instr)
         
     # LDY
 
     def _ldy_immediate(self, instr) -> list[int]:
+        """
+        Encodes the instruction to load an immediate value into the Y register.
+        """
         assert 0 <= instr.fr.value <= 255
         return [OP_LDY_IMMEDIATE, instr.fr.value]
 
     def _ldy_zero_page(self, instr) -> list[int]:
+        """
+        Encodes the instruction to load a value into the Y register from zero page memory.
+        """
         raise NotImplementedError(instr)
 
     def _ldy_zero_page_y(self, instr) -> list[int]:
+        """
+        Encodes the instruction to load a value into the Y register from zero page memory, using Y displacement.
+        """
         raise NotImplementedError(instr)
 
     def _ldy_absolute(self, instr) -> list[int]:

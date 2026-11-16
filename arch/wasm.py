@@ -28,11 +28,14 @@ MEMARG_I32 = [2, 0]
 
 
 def uleb128(value: int) -> list[int]:
+        """
+        Encodes a non-negative integer into a list of bytes using unsigned LEB128 encoding.
+        """
     """Encode a non-negative integer as unsigned LEB128."""
     assert value >= 0, f"ULEB128 requires a non-negative value: {value}"
     result: list[int] = []
     while True:
-        byte = value & 0x7F
+        byte = value & 0x7F  # Mask off the lower 7 bits to get the current byte
         value >>= 7
         if value:
             result.append(byte | 0x80)
@@ -45,7 +48,7 @@ def sleb128(value: int) -> list[int]:
     """Encode a signed integer as signed LEB128."""
     result: list[int] = []
     while True:
-        byte = value & 0x7F
+        byte = value & 0x7F  # Mask off the lower 7 bits to get the current byte
         value >>= 7
         if (value == 0 and not (byte & 0x40)) or (value == -1 and (byte & 0x40)):
             result.append(byte)
