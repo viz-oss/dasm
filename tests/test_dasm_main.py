@@ -127,8 +127,27 @@ def test_entry_jump_from_start_label(tmp_path, monkeypatch):
     assert output[17:] == bytes([0xA9, 0x01])
 
 
+def test_default_target_per_platform():
+    assert dasm.default_target('darwin') == ('arm64', 'macho')
+    assert dasm.default_target('linux') == ('x86', 'elf')
+    assert dasm.default_target('linux2') == ('x86', 'elf')
+    assert dasm.default_target('win32') == ('x86', 'exe')
+    assert dasm.default_target('freebsd13') == ('arm64', 'macho')
+
+
+def test_default_target_uses_current_platform():
+    expected = next(
+        (target for prefix, target in dasm.DEFAULT_TARGETS.items()
+         if dasm.sys.platform.startswith(prefix)),
+        ('arm64', 'macho'),
+    )
+
+    assert dasm.default_target() == expected
+
+
 def test_default_arch_and_format(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(dasm.sys, 'platform', 'darwin')
     _write(tmp_path / 'prog.dasm', 'r0 = 1\n')
 
     code = dasm.main(['prog.dasm'])

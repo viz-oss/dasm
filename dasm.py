@@ -15,6 +15,23 @@ import bootstrap.settings
 from bootstrap.modules import load_module
 
 
+# Default (architecture, format) pair for each host platform.
+DEFAULT_TARGETS = {
+    'darwin': ('arm64', 'macho'),
+    'linux': ('x86', 'elf'),
+    'win32': ('x86', 'exe'),
+}
+
+
+def default_target(platform: str | None = None) -> tuple[str, str]:
+    """Return the (arch, format) pair for the host platform."""
+    platform = sys.platform if platform is None else platform
+    for prefix, target in DEFAULT_TARGETS.items():
+        if platform.startswith(prefix):
+            return target
+    return DEFAULT_TARGETS['darwin']
+
+
 def _display_path(path):
     """Show a source path relative to the current working directory."""
     if path is None:
@@ -34,12 +51,12 @@ def main(argv = None):
     )
     parser.add_argument(
         '--arch',
-        choices=['alu48', 'arm64', 'mos', 'wasm', 'x86'],
+        choices=['alu48', 'arm64', 'mos6502', 'wasm', 'x86'],
         help='output architecture'
     )
     parser.add_argument(
         '--format',
-        choices=['bin', 'elf', 'hex', 'macho', 'prg', 'wasm'],
+        choices=['bin', 'elf', 'hex', 'macho', 'prg', 'wasm', 'exe'],
         help='output format',
     )
     parser.add_argument(
@@ -60,10 +77,11 @@ def main(argv = None):
     settings = bootstrap.settings.load_all()
     
     # Options
+    default_arch, default_format = default_target()
     options = {
-        # Defaults
-        'arch': 'arm64',
-        'format': 'macho',
+        # Defaults for the host platform
+        'arch': default_arch,
+        'format': default_format,
         'debug' : False,
         # Read from *.toml
         **settings.get('options', {}),
