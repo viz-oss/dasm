@@ -127,7 +127,7 @@ def main(argv = None):
     arch = load_module('arch', options['arch'])
     print(options['arch'])
 
-    # Load format first so it can provide the origin for labels
+    # Load format module first, as it provides the necessary origin information for labels.
     format = load_module('format', options['format'])
 
     # Entry point from .start <label>
