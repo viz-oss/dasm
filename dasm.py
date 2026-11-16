@@ -112,11 +112,16 @@ def main(argv = None):
         column_maps = preprocessed.column_maps
         ast = parse(preprocessed.text)
     except DasmSyntaxError as e:
+        # If a source map exists, relocate the error to include original source context (line/column mapping).
         if source_map is not None:
             e = source_map.relocate(e, column_maps)
+        
+        # Determine the file path for the error message.
         error_file = _display_path(e.file) if e.file else options['source']
         line = e.line if e.line is not None else ''
         col = e.col if e.col is not None else ''
+        
+        # Print the detailed error message to stderr, including file, line, and column.
         print('\n')
         print(f"{error_file}:{line}:{col}: syntax error\n{e}", file=sys.stderr)
         return 1

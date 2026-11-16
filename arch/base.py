@@ -7,11 +7,14 @@ from typing import Literal
 
 @dataclass(slots=True)
 class Relocation:
-    """A reference to a label that still has to be patched into the output."""
-    offset: int          # index in the output where the address starts
-    target: str          # label name
-    size: int = 2        # number of bytes occupied by the address
-    endian: str = 'little'
+    """
+    Represents a dependency on a label that must be resolved (patched) during assembly.
+    This occurs when the instruction needs to jump to a label whose address is not yet known.
+    """
+    offset: int          # The starting index in the output where the address needs to be written.
+    target: str          # The name of the label being referenced.
+    size: int = 2        # The number of bytes occupied by the address/target.
+    endian: str = 'little' # Byte order for writing the address.
 
 
 class Architecture(ABC):
@@ -79,22 +82,38 @@ class Architecture(ABC):
         return output
 
     def apply_relocations(self, output: list[int]) -> None:
-        """Patch placeholder operands with label addresses."""
+        """
+        Patches placeholder operands in the generated machine code with the correct, resolved label addresses.
+        This must be called after all instructions are generated but before the code is finalized.
+        """
         for reloc in self.relocations:
             if reloc.target not in self.labels:
                 raise ValueError(f"Undefined label: {reloc.target}")
+            
+            # Calculate the absolute address of the target label.
             address = self.origin + self.labels[reloc.target]
+            
+            # Basic bounds checking for the address size.
             if not 0 <= address < (1 << (reloc.size * 8)):
                 raise ValueError(
                     f"Address out of range for {reloc.target}: {address:#x}"
                 )
+            
+            # Write the calculated address into the output buffer at the specified offset.
+            # The address is converted to bytes based on the required size and endianness.
             output[reloc.offset:reloc.offset + reloc.size] = list(
                 address.to_bytes(reloc.size, byteorder=reloc.endian)
             )
 
     def bytes(self, instr) -> list[int]:
+        """
+        Emits raw byte data as a list of unsigned byte values (0-255).
+        :param instr: The instruction object containing byte values.
+        :return: A list of integers (0-255).
+        """
         result = []
         for byte in instr.values:
+            # Ensure each byte value is within the valid range [0, 255].
             assert 0 <= byte.value <= 255
             result.append(byte.value)
         return result
@@ -104,21 +123,48 @@ class Architecture(ABC):
 
     @abstractmethod
     def mov(self, instr) -> list[int]:
+        """
+        Translates a MOVE instruction into machine code.
+        :param instr: The instruction object specifying the move operation.
+        :return: A list of instruction words (integers) representing the machine code.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def call(self, instr, offset: int = 0) -> list[int]:
+        """
+        Translates a CALL instruction into machine code.
+        :param instr: The instruction object specifying the call operation.
+        :param offset: The current address/offset where the call instruction is being emitted (useful for relative addressing).
+        :return: A list of instruction words (integers) representing the machine code.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def ret(self, instr) -> list[int]:
+        """
+        Translates a RETURN instruction into machine code.
+        :param instr: The instruction object specifying the return operation.
+        :return: A list of instruction words (integers) representing the machine code.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def exit(self, instr) -> list[int]:
+        """
+        Translates an EXIT instruction into machine code.
+        This typically halts execution and signals the operating system.
+        :param instr: The instruction object specifying the exit operation.
+        :return: A list of instruction words (integers) representing the machine code.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def jmp(self, target: str, offset: int = 0) -> list[int]:
-        """Emit an unconditional jump to a label (used for the entry point)."""
+        """
+        Translates an unconditional JUMP instruction to a specified label.
+        :param target: The label name to jump to.
+        :param offset: Optional offset/addressing mode details.
+        :return: A list of instruction words (integers) representing the machine code.
+        """
         raise NotImplementedError
