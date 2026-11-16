@@ -1,4 +1,4 @@
-"""Format: hex for AVR and other boards"""
+"""Formats assembled code into a hexadecimal file, typically used for AVR microcontrollers."""
 
 from format.base import Format
 

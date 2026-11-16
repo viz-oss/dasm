@@ -1,4 +1,4 @@
-"""Format: raw binary"""
+"""Formats assembled code into a raw binary file."""
 
 from format.base import Format
 

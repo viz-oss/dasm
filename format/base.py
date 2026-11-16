@@ -16,4 +16,14 @@ class Format(ABC):
 
     @abstractmethod
     def output(self, words: list[int], entry: int | None = None) -> bytes:
+        """
+        Generates the final byte sequence for the assembled code.
+
+        Args:
+            words: The list of assembled instruction words (integers).
+            entry: Optional memory address of the entry point.
+
+        Returns:
+            The complete byte sequence of the formatted file.
+        """
         raise NotImplementedError
