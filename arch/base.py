@@ -95,7 +95,7 @@ class Architecture(ABC):
     def bytes(self, instr) -> list[int]:
         result = []
         for byte in instr.values:
-            assert 0 <= byte.value < 255
+            assert 0 <= byte.value <= 255
             result.append(byte.value)
         return result
 

@@ -1,0 +1,176 @@
+# Składnia języka
+
+Język DASM jest mały i celowo „asemblerowy”: program to lista linii, z których
+każda jest etykietą, przypisaniem, wywołaniem, dyrektywą albo `return`.
+Wcięcia nie mają znaczenia. Duże i małe litery **mają** znaczenie (poza
+słowami kluczowymi, które są zapisane małymi literami).
+
+## Komentarze i białe znaki
+
+```asm
+; komentarz
+# komentarz
+// komentarz
+```
+
+Wszystkie trzy formy działają do końca linii. Puste linie są ignorowane.
+Spacje i tabulatory separują tokeny.
+
+## Rejestry
+
+Rejestr zapisuje się jako `rN`, gdzie `N` to nieujemna liczba całkowita:
+
+```asm
+r0 = 1
+r1 = r0
+r128 = 2
+```
+
+Rejestry są **wirtualne** — backend mapuje je na fizyczne rejestry, lokale
+WASM albo komórki pamięci (zależnie od architektury). Nazwy `rN` są
+zarezerwowane i nie mogą być użyte jako etykieta ani stała.
+
+## Etykiety
+
+```asm
+start:
+main:
+pętla:
+🚀:
+```
+
+Nazwa etykiety może zawierać litery Unicode, cyfry, `_` i emoji, ale nie może
+zaczynać się od cyfry. Etykieta z dwukropkiem to osobny token, więc nie jest
+podmieniana przez preprocesor. Duplikat etykiety jest błędem na etapie
+asemblacji (`Duplicate label: ...`).
+
+## Przypisania
+
+```asm
+r0 = 1          ; stała liczba
+r1 = 0x20       ; liczba szesnastkowa
+r2 = -5         ; liczba ujemna
+r3 = 1_000      ; separator tysięcy
+r4 = r0         ; kopia rejestru
+r5 = message    ; adres etykiety (Ptr)
+message = r0    ; zapis rejestru pod adres symboliczny
+0xD020 = r0     ; zapis rejestru pod adres liczbowy
+```
+
+- Po lewej stronie może być rejestr (`rN`) albo adres (`nazwa` lub liczba).
+- Po prawej: rejestr, liczba lub nazwa (traktowana jako wskaźnik/adres).
+- Liczby w źródle: dziesiętne (z `_`), szesnastkowe `0x...` i ujemne.
+  Literały binarne (`0b...`) i ósemkowe (`0o...`) nie są obsługiwane przez
+  parser (działają tylko w wartościach `.set`).
+- Obsługiwane formy zależą od backendu — patrz
+  [architectures.md](architectures.md). Np. `mos6502` nie implementuje
+  kopiowania rejestr→rejestr, a `wasm` nie obsługuje adresów etykiet.
+
+## Funkcje, parametry i wywołania
+
+Definicja z parametrami:
+
+```asm
+dodaj(a: r0, b: r1):
+    r0 = 1
+    r1 = 2
+    return
+```
+
+- `a: r0` oznacza, że argument przekazany jako pierwszy trafi do `r0`.
+- Nazwy parametrów są dokumentacyjne: **o przypisaniu rejestru decyduje
+  kolejność argumentów**, nie ich nazwy.
+- Liczba argumentów musi zgadzać się z liczbą parametrów
+  (`Args mismatch in <label>`).
+- Wywołanie musi wskazywać istniejącą etykietę (`Label <name> not found`).
+  Etykieta może być zdefiniowana później.
+
+Wywołania:
+
+```asm
+dodaj(a = 1, b = 2)
+r0 = dodaj(a = 1, b = 2)
+```
+
+- Wynik wywołania (`r0 = ...`) jest zapisywany w AST, ale obecne backendy go
+  nie obsługują.
+- Argumenty przekazywane są przez rejestry parametrów; backend emituje
+  odpowiednie instrukcje przed skokiem (np. `mos6502` ładuje immediates i
+  wykonuje `JSR`).
+- Argument może być liczbą, rejestrem albo nazwą (Ptr). Backend może
+  obsługiwać tylko część tych form.
+
+## `return` i `.exit`
+
+```asm
+return
+return 5
+.exit
+```
+
+- `return` kończy funkcję. `return <liczba>` przekazuje wartość w architekturach,
+  które to obsługują (`wasm`); `mos6502` emituje tylko `RTS`.
+- `.exit` to dyrektywa wyjścia z programu. `mos6502` emituje `RTS`, `wasm`
+  `return`; pozostałe architektury rzucają `NotImplementedError`.
+
+## Dyrektywy
+
+Dyrektywy zaczynają się od kropki i są zapisane małymi literami. Każda musi
+wystąpić w osobnej linii.
+
+| Dyrektywa | Argument | Znaczenie |
+|---|---|---|
+| `.start <etykieta>` | nazwa | punkt wejścia programu; duplikat jest błędem |
+| `.exit` | brak | wyjście z programu |
+| `.text "..."` | string | tekst; parser tworzy `Text`, ale obecne backendy nic nie emitują |
+| `.b N` / `.b8 N` | lista liczb | bajty (`Bytes`, rozmiar 1) |
+| `.b16 N` | lista liczb | liczby 16-bitowe (`Bytes`, rozmiar 2) |
+| `.b32 N` | lista liczb | liczby 32-bitowe (`Bytes`, rozmiar 4) |
+| `.b64 N` | lista liczb | liczby 64-bitowe (`Bytes`, rozmiar 8) |
+
+```asm
+.start main
+.text "Hello"
+.b8 0x60, 0x01
+.b16 1, 2
+```
+
+Uwagi o `.bN`:
+
+- Parser zapisuje `size` w `Bytes`, ale bazowa implementacja
+  `Architecture.bytes()` **ignoruje rozmiar** i emituje jedną wartość jako
+  jeden bajt (endianność i wielobajtowość są dopiero do zaimplementowania).
+- Dlatego każda wartość musi mieścić się w zakresie `0..255`; np.
+  `.b16 0x1234` zakończy się `AssertionError` w obecnej implementacji.
+- `255` jest poprawne, `256` już nie.
+
+Nieznana lub źle użyta dyrektywa daje
+`unknown or misused directive <nazwa>`.
+
+## Stringi
+
+Stringi są w podwójnych cudzysłowach i obsługują escape'y Pythona:
+
+```asm
+.text "Hello\n"
+```
+
+Pojedyncze cudzysłowy w źródle nie są stringami (występują tylko w składni
+`.import`). Błędny escape, np. `"\x"`, daje
+`invalid literal: ...`.
+
+## Ograniczenia składni
+
+- Brak operatorów arytmetycznych w źródle — `r0 + 2` nie jest obsługiwane.
+- Brak etykiet lokalnych, sekcji, makr i warunkowej kompilacji.
+- Brak wieloliniowych stringów i komentarzy blokowych.
+- Brak typów i deklaracji zmiennych — wszystko jest rejestrem albo adresem.
+- `return`, `rN` i nazwy dyrektyw są zarezerwowane; `return_value` jest już
+  poprawną nazwą.
+- Etykiety i nazwy są wrażliwe na wielkość liter (`Foo` ≠ `foo`).
+- Semantyczne błędy parsera (duplikat `.start`, brak etykiety wywołania,
+  niezgodna liczba argumentów) nie mają jeszcze numeru linii i kolumny.
+
+Przykładowe, działające pliki znajdują się w `examples/` (np. `1.dasm`,
+`c64.dasm`, `c64sid.dasm`); część pozostałych plików to notatki projektowe,
+nie kod do skompilowania.

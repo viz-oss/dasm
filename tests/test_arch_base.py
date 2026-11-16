@@ -18,6 +18,14 @@ def test_bytes_are_emitted():
     arch = MOSArchitecture()
 
     assert arch.assembly([Bytes(1, (Int(0x60), Int(0x01)))]) == [0x60, 0x01]
+    assert arch.assembly([Bytes(1, (Int(255),))]) == [255]
+
+
+def test_byte_out_of_range():
+    arch = MOSArchitecture()
+
+    with pytest.raises(AssertionError):
+        arch.assembly([Bytes(1, (Int(256),))])
 
 
 def test_text_emits_nothing():
