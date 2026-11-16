@@ -53,6 +53,12 @@ class Arm64Architecture(Architecture):
     def call(self, instr, offset: int = 0) -> list[int]:
         raise NotImplementedError(instr)
 
+    def ret(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
+    def exit(self, instr) -> list[int]:
+        raise NotImplementedError(instr)
+
     def jmp(self, target: str, offset: int = 0) -> list[int]:
         raise NotImplementedError
 

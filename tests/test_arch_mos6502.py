@@ -3,7 +3,7 @@
 import pytest
 
 from arch.mos6502 import MOSArchitecture
-from lang.abstract import Arg, Bytes, Call, Int, Label, Reg, Start
+from lang.abstract import Arg, Bytes, Call, Exit, Int, Label, Reg, Return, Start
 
 def test_call_backward_label():
     arch = MOSArchitecture()
@@ -15,7 +15,7 @@ def test_call_backward_label():
 
     words = arch.assembly(ast, origin=0x080D)
 
-    assert words == [0x60, 0x4C, 0x0D, 0x08]
+    assert words == [0x60, 0x20, 0x0D, 0x08]
 
 def test_call_forward_label():
     arch = MOSArchitecture()
@@ -27,7 +27,7 @@ def test_call_forward_label():
 
     words = arch.assembly(ast, origin=0x080D)
 
-    assert words == [0x4C, 0x10, 0x08, 0x60]
+    assert words == [0x20, 0x10, 0x08, 0x60]
 
 
 def test_call_uses_origin():
@@ -39,7 +39,35 @@ def test_call_uses_origin():
 
     words = arch.assembly(ast, origin=0)
 
-    assert words == [0x4C, 0x03, 0x00]
+    assert words == [0x20, 0x03, 0x00]
+
+
+def test_call_with_args_relocates_after_arguments():
+    arch = MOSArchitecture()
+    ast = [
+        Label('fn'),
+        Call('fn', (
+            Arg('a', Int(1), _reg=Reg(0)),
+            Arg('b', Int(2), _reg=Reg(1)),
+        )),
+    ]
+
+    words = arch.assembly(ast, origin=0x080D)
+
+    # LDA #1, LDX #2, then JSR fn (address patched after the arguments).
+    assert words == [0xA9, 0x01, 0xA2, 0x02, 0x20, 0x0D, 0x08]
+
+
+def test_return_emits_rts():
+    arch = MOSArchitecture()
+
+    assert arch.assembly([Return()]) == [0x60]
+
+
+def test_exit_emits_rts():
+    arch = MOSArchitecture()
+
+    assert arch.assembly([Exit()]) == [0x60]
 
 
 def test_call_undefined_label():
@@ -69,7 +97,7 @@ def test_entry_jump_shifts_labels_and_relocations():
 
     words = arch.assembly(ast, origin=0x080D, start='main', entry_jump=True)
 
-    assert words == [0x4C, 0x11, 0x08, 0x60, 0xA9, 0x4C, 0x10, 0x08]
+    assert words == [0x4C, 0x11, 0x08, 0x60, 0xA9, 0x20, 0x10, 0x08]
     assert arch.entry == 0x0811
     assert arch.origin + arch.labels['exit'] == 0x0810
 

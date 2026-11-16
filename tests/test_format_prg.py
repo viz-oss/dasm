@@ -35,7 +35,7 @@ def test_call_is_relocated_to_prg_origin():
     words = arch.assembly(ast, origin=fmt.origin)
     output = fmt.output(words)
 
-    assert output[-3:] == bytes([0x4C, 0x0D, 0x08])
+    assert output[-3:] == bytes([0x20, 0x0D, 0x08])
 
 
 def test_start_adds_jump_to_entry_point():
@@ -64,5 +64,5 @@ def test_start_adds_jump_to_entry_point():
     ])
     # JMP main, then exit and main shifted by 3 bytes.
     assert output[14:17] == bytes([0x4C, 0x11, 0x08])
-    assert output[17:] == bytes([0x60, 0xA9, 0x4C, 0x10, 0x08])
+    assert output[17:] == bytes([0x60, 0xA9, 0x20, 0x10, 0x08])
     assert arch.entry == 0x0811
