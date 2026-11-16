@@ -4,9 +4,10 @@ Minimal bytecode backend. Virtual registers rN are mapped to WASM locals,
 so `r0 = 1` becomes `i32.const 1; local.set 0`.
 
 WASM uses LEB128 immediates, therefore all numbers and local indices are
-encoded with the helpers below. This module emits raw WASM opcodes only;
-wrapping them into a valid .wasm module (header, type/function/code
-sections) is a separate layer.
+encoded with the helpers below. This module emits raw WASM opcodes for one
+implicit function and closes its body with the structural `end` opcode.
+Wrapping the stream into a valid .wasm module (header, type/function/code
+sections) is done by `format.wasm`.
 """
 
 from arch.base import Architecture
@@ -14,6 +15,7 @@ from lang.abstract import Int, Ptr
 
 
 # Opcodes used by this backend.
+OP_END = 0x0B
 OP_RETURN = 0x0F
 OP_LOCAL_GET = 0x20
 OP_LOCAL_SET = 0x21
@@ -56,6 +58,17 @@ class WasmArchitecture(Architecture):
     word_size = 1        # byte-oriented output
     endian = 'little'    # little endian
     entry_jump_size = 0  # WASM has no direct jump instruction
+
+    # ASSEMBLY
+
+    def assembly(self, ast, origin: int = 0,
+                 start: str | None = None,
+                 entry_jump: bool = False) -> list[int]:
+        output = super().assembly(ast, origin, start, entry_jump)
+        # The whole program is one implicit WASM function. Its body must
+        # always be closed with the structural `end` opcode.
+        output.append(OP_END)
+        return output
 
     # Helpers
 
@@ -128,6 +141,9 @@ class WasmArchitecture(Architecture):
     # EXIT
 
     def exit(self, instr) -> list[int]:
+        # `.exit` leaves the program/host and may appear anywhere. In a
+        # single-function module `return` is the closest equivalent; the
+        # structural function `end` is appended once by assembly().
         return [OP_RETURN]
 
     # JMP

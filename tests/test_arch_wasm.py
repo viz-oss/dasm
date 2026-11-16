@@ -30,40 +30,45 @@ def test_sleb128():
     assert sleb128(-65) == [0xBF, 0x7F]
 
 
+def test_empty_program_ends_with_end():
+    arch = WasmArchitecture()
+    assert arch.assembly([]) == [0x0B]
+
+
 def test_mov_int_to_reg():
     arch = WasmArchitecture()
     words = arch.assembly([Mov(to=Reg(n=0), fr=Int(value=1))])
-    assert words == [0x41, 0x01, 0x21, 0x00]
+    assert words == [0x41, 0x01, 0x21, 0x00, 0x0B]
 
 
 def test_mov_large_int_to_reg():
     arch = WasmArchitecture()
     words = arch.assembly([Mov(to=Reg(n=0), fr=Int(value=300))])
-    assert words == [0x41, 0xAC, 0x02, 0x21, 0x00]
+    assert words == [0x41, 0xAC, 0x02, 0x21, 0x00, 0x0B]
 
 
 def test_mov_reg_to_reg():
     arch = WasmArchitecture()
     words = arch.assembly([Mov(to=Reg(n=0), fr=Reg(n=1))])
-    assert words == [0x20, 0x01, 0x21, 0x00]
+    assert words == [0x20, 0x01, 0x21, 0x00, 0x0B]
 
 
 def test_mov_large_register_number():
     arch = WasmArchitecture()
     words = arch.assembly([Mov(to=Reg(n=128), fr=Reg(n=300))])
-    assert words == [0x20, 0xAC, 0x02, 0x21, 0x80, 0x01]
+    assert words == [0x20, 0xAC, 0x02, 0x21, 0x80, 0x01, 0x0B]
 
 
 def test_store_to_fixed_address():
     arch = WasmArchitecture()
     words = arch.assembly([Mov(to=Ptr(target=Int(value=100)), fr=Reg(n=0))])
-    assert words == [0x41, 0xE4, 0x00, 0x20, 0x00, 0x36, 0x02, 0x00]
+    assert words == [0x41, 0xE4, 0x00, 0x20, 0x00, 0x36, 0x02, 0x00, 0x0B]
 
 
 def test_load_from_fixed_address():
     arch = WasmArchitecture()
     words = arch.assembly([Mov(to=Reg(n=0), fr=Ptr(target=Int(value=100)))])
-    assert words == [0x41, 0xE4, 0x00, 0x28, 0x02, 0x00, 0x21, 0x00]
+    assert words == [0x41, 0xE4, 0x00, 0x28, 0x02, 0x00, 0x21, 0x00, 0x0B]
 
 
 def test_label_address_is_not_supported():
@@ -74,17 +79,17 @@ def test_label_address_is_not_supported():
 
 def test_ret():
     arch = WasmArchitecture()
-    assert arch.assembly([Return()]) == [0x0F]
+    assert arch.assembly([Return()]) == [0x0F, 0x0B]
 
 
 def test_return_value():
     arch = WasmArchitecture()
-    assert arch.assembly([Return(Int(value=5))]) == [0x41, 0x05, 0x0F]
+    assert arch.assembly([Return(Int(value=5))]) == [0x41, 0x05, 0x0F, 0x0B]
 
 
 def test_exit():
     arch = WasmArchitecture()
-    assert arch.assembly([Exit()]) == [0x0F]
+    assert arch.assembly([Exit()]) == [0x0F, 0x0B]
 
 
 def test_call_is_not_supported_yet():

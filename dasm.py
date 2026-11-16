@@ -39,7 +39,7 @@ def main(argv = None):
     )
     parser.add_argument(
         '--format',
-        choices=['bin', 'elf', 'hex', 'macho', 'prg'],
+        choices=['bin', 'elf', 'hex', 'macho', 'prg', 'wasm'],
         help='output format',
     )
     parser.add_argument(
