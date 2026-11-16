@@ -28,9 +28,6 @@ MEMARG_I32 = [2, 0]
 
 
 def uleb128(value: int) -> list[int]:
-        """
-        Encodes a non-negative integer into a list of bytes using unsigned LEB128 encoding.
-        """
     """Encode a non-negative integer as unsigned LEB128."""
     assert value >= 0, f"ULEB128 requires a non-negative value: {value}"
     result: list[int] = []

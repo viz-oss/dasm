@@ -30,9 +30,9 @@ def test_movz_32bit():
 @pytest.mark.parametrize(
     "argument, value, message",
     [
-        ("rd", 32, "rd out of range"),
-        ("imm16", 0x10000, "imm16 out of range"),
-        ("hw", 4, "hw must be 0..3"),
+        ("rd", 32, r"\(rd\) out of range"),
+        ("imm16", 0x10000, r"\(imm16\) out of range"),
+        ("hw", 4, r"\(hw\) must be 0\.\.3"),
     ],
 )
 def test_movz_validates_arguments(argument, value, message):

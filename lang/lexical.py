@@ -1,5 +1,10 @@
 """
-Shared lexical building blocks (used by the grammar and by the preprocessor).
+Shared lexical building blocks.
+
+This module provides the raw regex patterns and helper functions used by both
+the Lark grammar parser and the preprocessor stage of the Dasm compiler.
+It handles complex character sets, including Unicode emojis and combining marks,
+to support a wide range of identifiers.
 """
 
 # NOTE: normal (non-raw) strings on purpose: the characters/ranges are real
