@@ -40,6 +40,18 @@ from arch.base import Architecture, Relocation
 from lang.abstract import Mov
 
 
+# Opcodes used by this backend.
+OP_LDA_IMMEDIATE = 0xA9
+OP_LDX_IMMEDIATE = 0xA2
+OP_LDY_IMMEDIATE = 0xA0
+OP_STA_ABSOLUTE = 0x8D
+OP_STX_ABSOLUTE = 0x8E
+OP_STY_ABSOLUTE = 0x8C
+OP_JSR = 0x20
+OP_RTS = 0x60
+OP_JMP = 0x4C
+
+
 class MOSArchitecture(Architecture):
 
     word_size = 1     # 8-bit CPU
@@ -81,7 +93,7 @@ class MOSArchitecture(Architecture):
 
     def _lda_immediate(self, instr) -> list[int]:
         assert 0 <= instr.fr.value <= 255
-        return [0xA9, instr.fr.value]
+        return [OP_LDA_IMMEDIATE, instr.fr.value]
 
     def _lda_zero_page(self, instr) -> list[int]:
         raise NotImplementedError(instr)
@@ -108,7 +120,7 @@ class MOSArchitecture(Architecture):
 
     def _ldx_immediate(self, instr) -> list[int]:
         assert 0 <= instr.fr.value <= 255
-        return [0xA2, instr.fr.value]
+        return [OP_LDX_IMMEDIATE, instr.fr.value]
 
     def _ldx_zero_page(self, instr) -> list[int]:
         raise NotImplementedError(instr)
@@ -126,7 +138,7 @@ class MOSArchitecture(Architecture):
 
     def _ldy_immediate(self, instr) -> list[int]:
         assert 0 <= instr.fr.value <= 255
-        return [0xA0, instr.fr.value]
+        return [OP_LDY_IMMEDIATE, instr.fr.value]
 
     def _ldy_zero_page(self, instr) -> list[int]:
         raise NotImplementedError(instr)
@@ -149,7 +161,7 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _sta_absolute(self, instr) -> list[int]:
-        return [0x8D, *self._absolute16(instr.to.target.value)]
+        return [OP_STA_ABSOLUTE, *self._absolute16(instr.to.target.value)]
 
     def _sta_absolute_x(self, instr) -> list[int]:
         raise NotImplementedError(instr)
@@ -172,7 +184,7 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _stx_absolute(self, instr) -> list[int]:
-        return [0x8E, *self._absolute16(instr.to.target.value)]
+        return [OP_STX_ABSOLUTE, *self._absolute16(instr.to.target.value)]
 
     # STY
 
@@ -183,13 +195,13 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _sty_absolute(self, instr) -> list[int]:
-        return [0x8C, *self._absolute16(instr.to.target.value)]
+        return [OP_STY_ABSOLUTE, *self._absolute16(instr.to.target.value)]
 
     # CALL
 
     def call(self, instr, offset: int = 0) -> list[int]:
         args_bytes = [subarg for arg in instr.args for subarg in self._arg(arg)]
-        call_bytes = [0x20, 0x00, 0x00] # JSR, 0x00, 0x00 address ready for a relocation
+        call_bytes = [OP_JSR, 0x00, 0x00] # JSR, 0x00, 0x00 address ready for a relocation
         self.relocations.append(
             Relocation(offset + 1 + len(args_bytes), instr.target, 2, self.endian)
         )
@@ -198,12 +210,12 @@ class MOSArchitecture(Architecture):
     # RET
 
     def ret(self, instr) -> list[int]:
-        return [0x60]
+        return [OP_RTS]
 
     # EXIT
 
     def exit(self, instr) -> list[int]:
-        return [0x60]  # RTS
+        return [OP_RTS]  # RTS
 
     # JMP
 
@@ -211,7 +223,7 @@ class MOSArchitecture(Architecture):
         self.relocations.append(
             Relocation(offset + 1, target, 2, self.endian)
         )
-        return [0x4C, 0x00, 0x00] # JMP, 0x00, 0x00 address ready for a relocation
+        return [OP_JMP, 0x00, 0x00] # JMP, 0x00, 0x00 address ready for a relocation
 
 
 EXPORTS = MOSArchitecture
