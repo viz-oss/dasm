@@ -7,7 +7,7 @@ import pytest
 
 from arch.wasm import WasmArchitecture
 from bootstrap.modules import load_module
-from format.wasm import FormatWasm
+from format.wasm import FormatWasm, _uleb128
 from lang.abstract import Int, Mov, Ptr, Reg
 
 
@@ -107,6 +107,44 @@ def test_missing_end_opcode():
 def test_nonzero_entry_is_not_supported():
     with pytest.raises(ValueError, match='entry offset'):
         FormatWasm().output([0x0B], entry=1)
+
+
+def test_call_opcode_is_scanned():
+    module = FormatWasm().output([0x10, 0x00, 0x0B])
+
+    assert module[:8] == MAGIC
+
+
+@pytest.mark.parametrize("opcode", [0x00, 0x0F])
+def test_plain_opcodes_are_scanned(opcode):
+    module = FormatWasm().output([opcode, 0x0B])
+
+    assert module[:8] == MAGIC
+
+
+def test_truncated_constant_is_rejected():
+    with pytest.raises(ValueError, match='unexpected end'):
+        FormatWasm().output([0x41])
+
+
+def test_truncated_local_index_is_rejected():
+    with pytest.raises(ValueError, match='unexpected end'):
+        FormatWasm().output([0x20])
+
+
+def test_uleb128_requires_non_negative():
+    with pytest.raises(AssertionError, match='non-negative'):
+        _uleb128(-1)
+
+
+def test_custom_memory_pages():
+    fmt = FormatWasm()
+    fmt.memory_pages = 2
+    arch = WasmArchitecture()
+    words = arch.assembly([Mov(to=Ptr(target=Int(value=100)), fr=Reg(n=0))])
+    sections = dict(_sections(fmt.output(words)))
+
+    assert sections[5] == bytes([0x01, 0x00, 0x02])
 
 
 def test_node_validates_module():

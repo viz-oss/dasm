@@ -98,6 +98,30 @@ def test_call_is_not_supported_yet():
         arch.assembly([Call('missing')])
 
 
+def test_uleb128_requires_non_negative():
+    with pytest.raises(AssertionError, match='non-negative'):
+        uleb128(-1)
+
+
+def test_sleb128_negative_boundaries():
+    assert sleb128(-128) == [0x80, 0x7F]
+    assert sleb128(-8192) == [0x80, 0x40]
+
+
+def test_unsupported_mov_raises():
+    arch = WasmArchitecture()
+
+    with pytest.raises(NotImplementedError):
+        arch.assembly([Mov(to=Ptr(target=Int(value=1)), fr=Int(value=1))])
+
+
+def test_negative_address_is_rejected():
+    arch = WasmArchitecture()
+
+    with pytest.raises(AssertionError, match='negative address'):
+        arch.assembly([Mov(to=Reg(n=0), fr=Ptr(target=Int(value=-1)))])
+
+
 def test_jmp_is_not_supported():
     arch = WasmArchitecture()
     with pytest.raises(NotImplementedError, match='direct jump'):

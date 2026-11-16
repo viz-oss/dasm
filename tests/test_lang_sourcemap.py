@@ -132,3 +132,58 @@ def test_empty_column_map_is_identity():
     column_map = ColumnMap()
 
     assert column_map.lookup(7) == 7
+
+
+def test_column_map_before_first_segment_is_identity():
+    column_map = ColumnMap([ColumnSegment(5, 6, 5)])
+
+    assert column_map.lookup(1) == 1
+
+
+def test_original_line_reads_and_caches_file(tmp_path):
+    src = tmp_path / "main.dasm"
+    src.write_text("one\ntwo\n", encoding="utf-8")
+    source_map = SourceMap([SourceLocation(src, 1)])
+
+    assert source_map.original_line(SourceLocation(src, 2)) == "two"
+    assert source_map.original_line(SourceLocation(src, 2)) == "two"
+    assert source_map.original_line(SourceLocation(src, 99)) is None
+
+
+def test_original_line_missing_file():
+    source_map = SourceMap([])
+
+    assert source_map.original_line(SourceLocation(Path("missing.dasm"), 1)) is None
+
+
+def test_relocate_maps_columns_and_formats_context(tmp_path):
+    src = tmp_path / "main.dasm"
+    src.write_text("r0 = X +\n", encoding="utf-8")
+    source_map = SourceMap([SourceLocation(src, 1)])
+    column_map = ColumnMap([
+        ColumnSegment(1, 1, 1),
+        ColumnSegment(2, 2, 5),
+    ])
+    error = DasmSyntaxError(
+        line=1, col=2, message="context", map_columns=True, context=True,
+    )
+
+    result = source_map.relocate(error, [column_map])
+
+    assert result.col == 5
+    assert "r0 = X +" in result.message
+    assert result.message.splitlines()[-1] == "    ^"
+
+
+def test_relocate_without_column_maps_skips_context(tmp_path):
+    src = tmp_path / "main.dasm"
+    src.write_text("r0 = X +\n", encoding="utf-8")
+    source_map = SourceMap([SourceLocation(src, 1)])
+    error = DasmSyntaxError(
+        line=1, col=2, message="context", map_columns=True, context=True,
+    )
+
+    result = source_map.relocate(error)
+
+    assert result.col == 2
+    assert result.message == "context"

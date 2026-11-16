@@ -1,6 +1,9 @@
 """Unit tests for column maps produced by the preprocessor."""
 
-from lang.preprocess import preprocess_with_map
+import pytest
+
+from lang.exceptions import DasmSyntaxError
+from lang.preprocess import preprocess, preprocess_with_map
 
 
 def test_column_map_after_longer_substitution():
@@ -46,3 +49,65 @@ def test_column_maps_match_line_count():
     result = preprocess_with_map(".set X = 1\n\nr0 = X\n")
 
     assert len(result.column_maps) == len(result.text.split("\n"))
+
+
+def test_set_number_is_substituted():
+    result = preprocess_with_map(".set X = 0x10\nr0 = X\n")
+
+    assert result.text == "\nr0 = 16\n"
+
+
+def test_set_string_is_quoted():
+    assert preprocess('.set NAME = "abc"\n.text NAME\n') == '\n.text "abc"\n'
+
+
+def test_set_rejects_register_name():
+    with pytest.raises(DasmSyntaxError, match='reserved for registers'):
+        preprocess(".set r1 = 2\n")
+
+
+def test_set_rejects_non_number_value():
+    with pytest.raises(DasmSyntaxError, match='must be a number or a string'):
+        preprocess(".set X = abc\n")
+
+
+def test_set_rejects_invalid_number():
+    with pytest.raises(DasmSyntaxError, match="invalid number '09'"):
+        preprocess(".set X = 09\n")
+
+
+def test_set_requires_name_and_value():
+    with pytest.raises(DasmSyntaxError, match='expected: .set NAME'):
+        preprocess(".set X\n")
+
+
+def test_set_rejects_invalid_string_literal():
+    with pytest.raises(DasmSyntaxError, match='invalid string literal'):
+        preprocess('.set X = "\\x"\n')
+
+
+def test_set_rejects_duplicate_definition():
+    with pytest.raises(DasmSyntaxError, match="constant 'X' already defined"):
+        preprocess(".set X = 1\n.set X = 2\n")
+
+
+def test_config_wins_over_set():
+    result = preprocess(".set X = 123\nr0 = X\n", {"X": 7})
+
+    assert result == "\nr0 = 7\n"
+
+
+def test_config_rejects_bool():
+    with pytest.raises(DasmSyntaxError, match='expected int or string, got bool'):
+        preprocess("", {"X": True})
+
+
+def test_config_rejects_invalid_name():
+    with pytest.raises(DasmSyntaxError, match="invalid constant name 'bad-name'"):
+        preprocess("", {"bad-name": 1})
+
+
+def test_constants_are_not_substituted_in_special_contexts():
+    text = '.set X = 1\n; X\n// X\n# X\nr0 = "X"\nX:\n.text "X"\n'
+
+    assert preprocess(text) == '\n; X\n// X\n# X\nr0 = "X"\nX:\n.text "X"\n'

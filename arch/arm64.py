@@ -23,6 +23,9 @@ class Arm64Architecture(Architecture):
                     #return [self._movz(..., ...) , self._movk(..., ...)]
         raise NotImplementedError(instr)
 
+    def _orr(self, instr) -> int:
+        raise NotImplementedError(instr)
+
     def _movz(self,
         rd: int,              # Register number 0..31
         imm16: int,           # Constant 16-bit value to move

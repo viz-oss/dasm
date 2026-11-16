@@ -216,3 +216,103 @@ def test_preprocess_preserves_line_count(tmp_path):
     processed_text = preprocess(full_text)
 
     assert len(full_text.split("\n")) == len(processed_text.split("\n"))
+
+
+def test_absolute_import(tmp_path):
+    lib = _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(tmp_path / "main.dasm", f".import '{lib}'\n")
+
+    assert resolve(src.read_text(encoding="utf-8"), source_path=src) == "r0 = 1\n"
+
+
+def test_absolute_import_without_suffix(tmp_path):
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    lib = tmp_path / "lib"
+    src = _write(tmp_path / "main.dasm", f".import '{lib}'\n")
+
+    assert resolve(src.read_text(encoding="utf-8"), source_path=src) == "r0 = 1\n"
+
+
+def test_import_falls_back_to_cwd(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(tmp_path / "src" / "main.dasm", ".import 'lib.dasm'\n")
+
+    assert resolve(src.read_text(encoding="utf-8"), source_path=src) == "r0 = 1\n"
+
+
+def test_duplicate_search_roots_are_skipped(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(tmp_path / "main.dasm", ".import 'lib.dasm'\n")
+
+    result = resolve(
+        src.read_text(encoding="utf-8"),
+        paths=["."],
+        source_path=src,
+    )
+
+    assert result == "r0 = 1\n"
+
+
+def test_search_root_resolve_error_is_ignored(tmp_path, monkeypatch):
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(tmp_path / "main.dasm", ".import 'lib.dasm'\n")
+    real_resolve = Path.resolve
+
+    def fake_resolve(self, *args, **kwargs):
+        if self.name == "badroot":
+            raise OSError("boom")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", fake_resolve)
+
+    result = resolve(
+        src.read_text(encoding="utf-8"),
+        paths=["badroot"],
+        source_path=src,
+    )
+
+    assert result == "r0 = 1\n"
+
+
+def test_import_read_error(tmp_path, monkeypatch):
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(tmp_path / "main.dasm", ".import 'lib.dasm'\n")
+    real_read_text = Path.read_text
+
+    def fake_read_text(self, *args, **kwargs):
+        if self.name == "lib.dasm":
+            raise OSError("boom")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", fake_read_text)
+
+    with pytest.raises(DasmSyntaxError, match="cannot read import"):
+        resolve(src.read_text(encoding="utf-8"), source_path=src)
+
+
+def test_resolve_without_source_path():
+    assert resolve("r0 = 1\n") == "r0 = 1\n"
+
+
+def test_source_path_resolve_error_is_ignored(monkeypatch):
+    real_resolve = Path.resolve
+
+    def fake_resolve(self, *args, **kwargs):
+        if self.name == "main.dasm":
+            raise OSError("boom")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", fake_resolve)
+
+    resolved = resolve_with_map("r0 = 1\n", source_path="main.dasm")
+
+    assert resolved.text == "r0 = 1\n"
+
+
+def test_import_allows_trailing_comment(tmp_path):
+    _write(tmp_path / "lib.dasm", "r0 = 1\n")
+    src = _write(tmp_path / "main.dasm", ".import 'lib.dasm' ; comment\n")
+
+    assert resolve(src.read_text(encoding="utf-8"), source_path=src) == "r0 = 1\n"

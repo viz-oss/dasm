@@ -71,3 +71,12 @@ def test_load_module_exports_not_callable(mock_import):
         load_module("plugins", "string_plugin")
 
     assert "must be a function or a class" in str(exc_info.value)
+
+
+@patch("importlib.import_module", side_effect=RuntimeError("boom"))
+def test_load_module_import_error(mock_import):
+    with pytest.raises(DasmSyntaxError) as exc_info:
+        load_module("plugins", "broken_plugin")
+
+    assert "Error importing module 'plugins/broken_plugin'" in str(exc_info.value)
+    assert "boom" in str(exc_info.value)
