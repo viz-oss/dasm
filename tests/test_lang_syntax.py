@@ -169,3 +169,8 @@ def test_ast_filter():
     assert ast.filter(name='a') == [Label('a')]
     assert ast.filter(typeof=Call) == [Call('a')]
     assert ast.filter() == list(ast)
+
+
+def test_block_comments():
+    ast = parse("/* a */ r0 = 1\n\"\"\"\nopis\n\"\"\"\nr1 = 2")
+    assert ast == [Mov(Reg(0), Int(1)), Mov(Reg(1), Int(2))]

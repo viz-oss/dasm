@@ -54,10 +54,12 @@ STRING: /"(\\.|[^"\\\r\n])*"/
 
 // --- terminals: whitespace and comments
 COMMENT: /;[^\r\n]*|#[^\r\n]*|\/\/[^\r\n]*/
+BLOCK_COMMENT.5: /\/\*[\s\S]*?\*\/|"""[\s\S]*?"""/
 WHITESPACE: /[ \t]+/
 _NL: /(\r?\n)+/
 
 %ignore COMMENT
+%ignore BLOCK_COMMENT
 %ignore WHITESPACE
 ''')
 

@@ -23,6 +23,12 @@ _TOKEN_RE = re.compile(expand(r'''
   | (?P<other>.)
 '''), re.VERBOSE)
 
+_MASK_RE = re.compile(r'''
+    (?P<line>;[^\r\n]*|\#[^\r\n]*|//[^\r\n]*)      # line comment: skip, may contain /*
+  | (?P<block>/\*[\s\S]*?\*/|"""[\s\S]*?""")
+  | (?P<string>"(?:\\.|[^"\\\r\n])*")              # skip, may contain /*
+''', re.VERBOSE)
+
 _REG_RE = re.compile(r'r[0-9]+')
 _NUM_RE = re.compile(r'-?[0-9]\w*')
 _NAME_RE = re.compile(IDENT)
@@ -100,6 +106,14 @@ def _render(value: Value) -> str:
     """Text inserted in place of a constant name."""
     return str(value) if isinstance(value, int) else json.dumps(value)
 
+# --- block comments ---------------------------------------------------------
+
+def _mask_block_comments(text: str) -> str:
+    def repl(m):
+        if m.lastgroup != 'block':
+            return m.group()
+        return re.sub(r'[^\r\n]', ' ', m.group())
+    return _MASK_RE.sub(repl, text)
 
 # --- public API -------------------------------------------------------------
 
@@ -111,6 +125,7 @@ def preprocess_with_map(text: str, defines: dict[str, Value] | None = None) -> P
     """
     text = unicodedata.normalize('NFC', text)
     defines = {unicodedata.normalize('NFC', k): v for k, v in (defines or {}).items()}
+    text = _mask_block_comments(text)
     external = {k: _check_config(k, v) for k, v in (defines or {}).items()}
     consts: dict[str, Value] = dict(external)
     defined: set[str] = set()
