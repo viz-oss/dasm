@@ -94,10 +94,11 @@ Placeholder (sam docstring). Brak `EXPORTS`, więc `--arch x86` kończy się
 
 ### `alu48` — `arch/alu48.py`
 
-Legacy, oznaczony jako `DEPRECATED / IGNORE`. Nie dziedziczy po
-`Architecture`, ma własny interfejs (`instruction_set`, `encode`,
-`microcode_table`) i eksportuje `ARCHITECTURE`, a nie `EXPORTS`. Nie działa
-przez CLI ani przez `load_module()`.
+Backend 4-bitowego ALU dziedziczący po `Architecture`. Emituje jednobajtowe
+słowa sterujące przez `encode(mnemonic, operands, context)` i udostępnia
+`microcode_table()`. Eksportuje klasę przez `EXPORTS`, więc działa z
+`load_module()`; operacje CPU (`mov`, `call`, `ret`, `exit`, `jmp`)
+nie dotyczą tego backendu i zgłaszają `NotImplementedError`.
 
 ## Dodawanie architektury
 

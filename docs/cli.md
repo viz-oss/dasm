@@ -24,10 +24,9 @@ początku: `dasm v2.0.2`.
 | `-d`, `--debug` | zapisuje `debug = True` w opcjach; obecnie nie ma innego efektu |
 | `-h`, `--help` | pomoc argparse |
 
-> `alu48`, `x86`, `elf` i `exe` są na liście wyboru, ale `alu48` nie jest
-> zintegrowany z `Architecture`, a `x86`, `elf` i `exe` to placeholdery bez
-> `EXPORTS`. Użycie ich kończy się błędem `DasmSyntaxError` (dla `alu48`,
-> `x86`, `elf`, `exe`).
+> `x86`, `elf` i `exe` pozostają placeholderami bez `EXPORTS` i ich
+> użycie kończy się błędem `DasmSyntaxError`. Backend `alu48` jest
+> zintegrowany z `Architecture` i loaderem.
 
 ## Domyślne architektura i format
 

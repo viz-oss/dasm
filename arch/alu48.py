@@ -1,178 +1,109 @@
-# DEPRECATED / IGNORE
-"""
-Modul architektury: alu4
-4-bitowe ALU, 8 operacji (3-bit opcode), bez etykiet/skokow (samo ALU, nie CPU).
+"""Architecture backend for the 4-bit ALU instruction format.
 
-Format slowa instrukcji (8 bitow):
+The ALU is not a general-purpose CPU.  It emits one byte per instruction:
 
-  bit:  7 6 5 | 4 3 2 1 | 0
-        OPCODE| A (4b)  | (rezerwa / Cn override)
+    [7:5] opcode | [4:1] A | [0] carry-in override
 
-Layout:
-  [7:5] opcode (3 bity)
-  [4:1] operand A - 4-bit wartosc testowa wpisywana do rejestru A
-  [0]   Cn override (carry-in dla SUB/ADD), domyslnie 0
-
-Operand B wpisywany jest osobno (sprzetowo, np. przelacznikami) - nie jest
-czescia slowa instrukcji w tej minimalnej wersji.
-
-Mnemoniki i kodowanie opcode -> sygnaly 74181 (S3 S2 S1 S0, M, Cn) - patrz README.
+The second ALU input is supplied by the hardware and is therefore not encoded.
 """
 
-from abc import ABC, abstractmethod
-
-
-class Architecture(ABC):
-    """Interfejs modulu architektury."""
-
-    # Nazwa uzywana w --arch
-    name: str = "base"
-
-    # Rozmiar slowa instrukcji w bitach (np. 8, 16)
-    word_size: int = 8
-
-    # Czy assembler ma wspierac etykiety / adresy (potrzebne dla CPU z JMP itp.)
-    supports_labels: bool = False
-
-    @abstractmethod
-    def instruction_set(self) -> dict:
-        """
-        Zwraca slownik:
-        {
-            "MNEMONIC": {
-                "opcode": int,          # wartosc liczbowa opcode
-                "opcode_bits": int,     # liczba bitow opcode
-                "operands": [...],      # lista typow operandow, np. ["reg4"], ["imm4"], []
-            },
-            ...
-        }
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def encode(self, mnemonic: str, operands: list[str], context: dict) -> int:
-        """
-        Koduje pojedyncza instrukcje do liczby calkowitej (word_size bitow).
-
-        mnemonic: nazwa instrukcji, wielkimi literami
-        operands: lista operandow jako stringi (po rozwiazaniu etykiet)
-        context:  dodatkowe info, np. {"labels": {...}, "address": current_addr}
-        """
-        raise NotImplementedError
-
-    def parse_operand(self, token: str, operand_type: str, labels: dict) -> int:
-        """
-        Domyslny parser operandu. Moze byc nadpisany przez konkretna architekture.
-        Wspiera: liczby dziesietne, hex (0x..), binarne (0b..), etykiety (jesli supports_labels).
-        """
-        token = token.strip()
-
-        if token in labels:
-            return labels[token]
-
-        if token.lower().startswith("0x"):
-            return int(token, 16)
-        if token.lower().startswith("0b"):
-            return int(token, 2)
-
-        # rejestr w formie R0, R1, ...
-        if operand_type.startswith("reg") and token.upper().startswith("R"):
-            return int(token[1:])
-
-        return int(token)
-
-    def max_operand_value(self, operand_type: str) -> int:
-        """Maksymalna wartosc dla danego typu operandu (do walidacji)."""
-        bits = self._operand_bits(operand_type)
-        return (1 << bits) - 1
-
-    @staticmethod
-    def _operand_bits(operand_type: str) -> int:
-        """Wyciaga liczbe bitow z typu operandu, np. 'reg4' -> 4, 'imm8' -> 8."""
-        digits = "".join(c for c in operand_type if c.isdigit())
-        if not digits:
-            raise ValueError(f"Nie mozna ustalic liczby bitow dla typu '{operand_type}'")
-        return int(digits)
+from arch.base import Architecture
 
 
 class Alu4Architecture(Architecture):
+    """Backend for the 4-bit ALU and its 8-bit control words."""
 
-    name = "alu4"
-    word_size = 8
-    supports_labels = False
+    word_size = 1
+    endian = "little"
+    entry_jump_size = 0
 
-    # opcode -> (binarna wartosc opcode, sygnaly sterujace 74181: S3S2S1S0, M, Cn)
     OPCODES = {
         "ADD": {"opcode": 0b000, "S": 0b1001, "M": 0, "Cn": 0},
         "SUB": {"opcode": 0b001, "S": 0b0110, "M": 0, "Cn": 1},
         "AND": {"opcode": 0b010, "S": 0b1011, "M": 1, "Cn": None},
-        "OR":  {"opcode": 0b011, "S": 0b1110, "M": 1, "Cn": None},
+        "OR": {"opcode": 0b011, "S": 0b1110, "M": 1, "Cn": None},
         "XOR": {"opcode": 0b100, "S": 0b0110, "M": 1, "Cn": None},
         "NOT": {"opcode": 0b101, "S": 0b0000, "M": 1, "Cn": None},
         "SHL": {"opcode": 0b110, "S": 0b0000, "M": 0, "Cn": 1},
-        "SHR": {"opcode": 0b111, "S": None,   "M": None, "Cn": None},  # logika zewnetrzna
+        "SHR": {"opcode": 0b111, "S": None, "M": None, "Cn": None},
     }
 
     def instruction_set(self) -> dict:
-        result = {}
-        for mnemonic in self.OPCODES:
-            result[mnemonic] = {
-                "opcode": self.OPCODES[mnemonic]["opcode"],
+        """Return the ALU mnemonic description."""
+        return {
+            mnemonic: {
+                "opcode": info["opcode"],
                 "opcode_bits": 3,
-                "operands": ["imm4"],  # wartosc A; Cn override mozna podac jako drugi opcjonalny operand
+                "operands": ["imm4", "imm1"],
             }
-        return result
+            for mnemonic, info in self.OPCODES.items()
+        }
 
-    def encode(self, mnemonic: str, operands: list[str], context: dict) -> int:
+    @staticmethod
+    def _parse_operand(token: str, labels: dict[str, int]) -> int:
+        token = token.strip()
+        if token in labels:
+            return labels[token]
+        return int(token, 0)
+
+    def encode(self, mnemonic: str, operands: list[str], context: dict | None = None) -> int:
+        """Encode one ALU instruction as an 8-bit control word."""
         mnemonic = mnemonic.upper()
         if mnemonic not in self.OPCODES:
-            raise ValueError(f"Nieznana instrukcja: {mnemonic}")
+            raise ValueError(f"Unknown instruction: {mnemonic}")
+        if not 1 <= len(operands) <= 2:
+            raise ValueError(f"{mnemonic} requires operand A and accepts optional Cn")
 
-        info = self.OPCODES[mnemonic]
-        opcode = info["opcode"]
+        context = context or {}
+        labels = context.get("labels", {})
+        a_value = self._parse_operand(operands[0], labels)
+        if not 0 <= a_value <= 0xF:
+            raise ValueError(f"Operand A out of range 0..15: {a_value}")
 
-        if len(operands) < 1:
-            raise ValueError(f"{mnemonic} wymaga operandu A (0-15)")
+        carry = 0
+        if len(operands) == 2:
+            carry = self._parse_operand(operands[1], labels)
+            if carry not in (0, 1):
+                raise ValueError("Cn override must be 0 or 1")
 
-        a_value = self.parse_operand(operands[0], "imm4", context.get("labels", {}))
-        if not (0 <= a_value <= 0xF):
-            raise ValueError(f"Operand A poza zakresem 0-15: {a_value}")
-
-        cn_override = 0
-        if len(operands) >= 2:
-            cn_override = self.parse_operand(operands[1], "imm1", context.get("labels", {}))
-            if cn_override not in (0, 1):
-                raise ValueError("Cn override musi byc 0 lub 1")
-
-        # [7:5] opcode | [4:1] A | [0] Cn override
-        word = (opcode << 5) | (a_value << 1) | cn_override
-        return word
+        return (self.OPCODES[mnemonic]["opcode"] << 5) | (a_value << 1) | carry
 
     def microcode_table(self) -> list[dict]:
-        """
-        Zwraca tabele mikrokodu do zaprogramowania EEPROM dekodera opcode -> 74181.
-        Adres EEPROM = 3-bit opcode (0-7).
-        Dane wyjsciowe = S3 S2 S1 S0 M Cn + ext_shift_enable (7 bitow), MSB->LSB.
-        Dla SHR (opcode 111) ustawiane jest ext_shift_enable=1, reszta = don't care (0).
-        """
+        """Return EEPROM data for opcode-to-74181 control decoding."""
         table = []
-        for mnemonic, info in sorted(self.OPCODES.items(), key=lambda kv: kv[1]["opcode"]):
-            opcode = info["opcode"]
+        for mnemonic, info in sorted(
+            self.OPCODES.items(), key=lambda item: item[1]["opcode"]
+        ):
             if mnemonic == "SHR":
-                data = 0b0000_00_1  # S=xxxx M=x Cn=x ext_shift=1 -> tu same zera + bit shift
+                data = 0b0000001
             else:
-                s = info["S"]
-                m = info["M"]
-                cn = info["Cn"] if info["Cn"] is not None else 0
-                data = (s << 3) | (m << 2) | (cn << 1) | 0  # ostatni bit = ext_shift_enable = 0
+                carry = info["Cn"] if info["Cn"] is not None else 0
+                data = (info["S"] << 3) | (info["M"] << 2) | (carry << 1)
+
             table.append({
-                "opcode": opcode,
+                "opcode": info["opcode"],
                 "mnemonic": mnemonic,
                 "data_bin": format(data, "07b"),
                 "data_hex": format(data, "02X"),
             })
         return table
 
+    def mov(self, instr) -> list[int]:
+        raise NotImplementedError(
+            "The ALU backend has no generic MOV instruction; use encode()"
+        )
 
-# Wymagane: kazdy modul musi eksportowac zmienna ARCHITECTURE wskazujaca na klase
-ARCHITECTURE = Alu4Architecture
+    def call(self, instr, offset: int = 0) -> list[int]:
+        raise NotImplementedError("The ALU backend has no CALL instruction")
+
+    def ret(self, instr) -> list[int]:
+        raise NotImplementedError("The ALU backend has no RETURN instruction")
+
+    def exit(self, instr) -> list[int]:
+        raise NotImplementedError("The ALU backend has no EXIT instruction")
+
+    def jmp(self, target: str, offset: int = 0) -> list[int]:
+        raise NotImplementedError("The ALU backend has no JMP instruction")
+
+
+EXPORTS = Alu4Architecture
