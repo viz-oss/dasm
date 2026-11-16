@@ -1,6 +1,7 @@
 ; Program: Zmiana koloru ramki i tła w C64
 
 .start 🚀
+;.import 'platform/c64/asm.dasm' ; wszystkie mnemoniki zdefiniowane duzymi literami
 .import 'platform/c64/sys.dasm'
 .import 'platform/c64/vic.dasm'
 
@@ -9,3 +10,8 @@
   vic_frame_color(color = VIC_GREEN)
 
 .exit
+
+;r0 = label ; adres
+;r0 = label() ; call
+;r0 = label[0] ; element
+;r0 = label[r1] ; element z numerem w rejestrze

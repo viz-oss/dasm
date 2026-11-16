@@ -20,3 +20,216 @@
   
   exit()
 
+;;;;;;;;;;;;;;;;;;;;
+Przykłady z assemblera c64
+
+; PRINT #1
+
+LDX #0          ; Wyczyść rejestr X (indeks = 0)
+loop:
+        LDA msg,X       ; Pobierz znak; jeśli to 0, procesor automatycznie ustawi flagę Z=1
+        BEQ done        ; Branch if Equal (skocz do "done", jeśli flaga Z=1, czyli napotkano 0)
+        STA $0400,X     ; Zapisz znak w pamięci ekranu pod adresem $0400 + X
+        INX             ; Zwiększ indeks X o 1
+        BNE loop        ; Skocz z powrotem do pętli (działa dopóki X nie przekręci się po 255 na 0)
+done:
+        RTS             ; Powrót z podprogramu
+
+msg:    .byte 8,5,12,12,15,0  ; Kody ekranowe (Screen Codes) dla H, E, L, L, O + 0 na końcu
+
+; PRINT #2
+
+Ponieważ rejestr Y ma tylko 8 bitów, może obsłużyć maksymalnie 256 bajtów za jednym razem.
+Aby obsłużyć tekst dłuższy niż 255 znaków (lub taki, który przekracza granice strony pamięci,
+np. kończy się w jednej stronie, a zaczyna w drugiej), gdy rejestr Y osiągnie wartość $FF i wyzeruje się,
+musimy zwiększyć starszy bajt wskaźnika o 1.
+
+; Definicje w stronie zerowej
+TXT_PTR = $FB   ; Wskaźnik na tekst (2 bajty: $FB - młodszy, $FC - starszy)
+SCR_PTR = $FD   ; Wskaźnik na ekran (2 bajty: $FD - młodszy, $FE - starszy)
+
+        * = $1000       ; Adres startowy programu
+
+start:
+        ; 1. Ustaw wskaźnik tekstu na początek napisu (np. $1100)
+        LDA #<long_text
+        STA TXT_PTR
+        LDA #>long_text
+        STA TXT_PTR+1
+
+        ; 2. Ustaw wskaźnik ekranu na początek pamięci ekranu ($0400)
+        LDA #<$0400
+        STA SCR_PTR
+        LDA #>$0400
+        STA SCR_PTR+1
+
+        LDY #0          ; Wyzeruj offset Y
+
+print_loop:
+        LDA (TXT_PTR),Y ; Pobierz znak z adresu wskazane przez TXT_PTR + Y
+        BEQ finished    ; Jeśli natrafiono na 0 (koniec napisu), zakończ
+        
+        STA (SCR_PTR),Y ; Zapisz znak na ekranie pod adresem SCR_PTR + Y
+        
+        INY             ; Zwiększ offset Y o 1
+        BNE print_loop  ; Jeśli Y nie przekręcił się (nie znowu 0), kontynuuj pętlę
+
+        ; Jeśli Y osiągnął 0 po przekroczeniu $FF, musimy zwiększyć strony wskaźników!
+        INC TXT_PTR+1   ; Przejdź do kolejnej strony pamięci źródłowej (tekst)
+        INC SCR_PTR+1   ; Przejdź do kolejnej strony pamięci docelowej (ekran)
+        JMP print_loop  ; Wróć do pętli
+
+finished:
+        RTS             ; Powrót
+
+; Długi tekst zakończony zerem (może mieć ponad 255 znaków)
+long_text:
+        .byte 8,5,12,12,15, 32, 12,15,15,11,0  ; "HELLO LOOK" + 0
+        
+; PRINT #3
+
+Jeśli tekst znajduje się po prostu w dowolnym miejscu w pamięci RAM (np. wczytany z dysku,
+wpisany przez użytkownika do bufora albo umieszczony pod adresem $2000),
+z punktu widzenia procesora i kodu zasada działania jest dokładnie taka sama.
+
+TXT_PTR = $FB   ; Wskaźnik źródłowy ( RAM )
+SCR_PTR = $FD   ; Wskaźnik docelowy ( Ekran $0400 )
+
+        * = $1000       ; Kod programu zaczyna się np. pod $1000
+
+start:
+        ; 1. Wskazujemy na dowolny adres w RAM, gdzie leży tekst ($2000)
+        LDA #<my_ram_text
+        STA TXT_PTR
+        LDA #>my_ram_text
+        STA TXT_PTR+1
+
+        ; 2. Wskazujemy początek ekranu ($0400)
+        LDA #<$0400
+        STA SCR_PTR
+        LDA #>$0400
+        STA SCR_PTR+1
+
+        LDY #0
+print_loop:
+        LDA (TXT_PTR),Y ; Pobierz bajt z dowolnego miejsca w RAM
+        BEQ finished    ; Jeśli 0, koniec
+        STA (SCR_PTR),Y ; Zapisz na ekranie
+        
+        INY
+        BNE print_loop
+
+        INC TXT_PTR+1   ; Przejdź do kolejnej strony RAM
+        INC SCR_PTR+1   ; Przejdź do kolejnej strony ekranu
+        JMP print_loop
+
+finished:
+        RTS
+
+        * = $2000       ; Tekst umieszczamy w zupełnie innym miejscu w RAM!
+my_ram_text:
+        .byte 8,5,12,12,15, 32, 21,18,1,14,0  ; "HELLO URAN" + 0
+        
+; MEMORY #1
+
+Rezerwacja statyczna (Najpopularniejsza na C64)
+Ponieważ pamięć RAM w C64 ma stałą i ograniczoną wielkość (64 KB), a programy zazwyczaj mają z góry określone zapotrzebowanie, programiści rzadko kiedy „alokują” pamięć w locie. Zamiast tego z góry rezerwują bezpieczny blok pamięci w kodzie źródłowym za pomocą dyrektyw asemblera.
+Jeśli potrzebujesz bufora o wielkości 1 KB (1024 bajty = $0400 bajtów) i chcesz go umieścić np. pod adresem $C000 (gdzie jest wolna pamięć RAM nieużywana przez BASIC ani system):
+
+* = $1000       ; Początek naszego programu
+
+start:
+        ; Twój kod, który korzysta z bufora pod adresem $C000
+        LDA #$42
+        STA $C000       ; Zapisz coś w pierwszym bajcie bufora
+        RTS
+
+        * = $C000       ; Przesuwamy licznik adresów asemblera w wolne miejsce
+my_buffer:
+        .block 1024     ; Rezerwujemy 1024 bajty (składnia zależy od asemblera, np. .ds 1024 lub .fill 1024)
+        
+; MEMORY #2
+
+Własna alokacja dynamiczna w czasie działania (Heap Pointer)
+Jeśli piszesz program, w którym struktury danych muszą być tworzone dynamicznie w locie (np. wczytywane pliki o zmiennej wielkości), musisz zaimplementować tzw. wskaźnik wolnej pamięci (Free Memory Pointer).
+Działa to tak, że rezerwujesz wskaźnik w stronie zerowej, który wskazuje na pierwszy wolny bajt pamięci zaraz za Twoim programem. Gdy potrzebujesz bufora 1 KB, „odcinasz” ten kawałek, po czym przesuwasz wskaźnik o 1 KB do przodu dla następnego zadania.
+
+FREE_MEM = $FB          ; 2-bajtowy wskaźnik wolnej pamięci w stronie zerowej ($FB-$FC)
+BUFOR_PTR = $FD         ; Tutaj zapiszemy adres przydzielonego bufora
+
+; --- KROK 1: Inicjalizacja wskaźnika (np. na adres $C000) ---
+init_heap:
+        LDA #$00
+        STA FREE_MEM    ; Młodszy bajt = $00
+        LDA #$C0
+        STA FREE_MEM+1  ; Starszy bajt = $C0 (adres $C000)
+        RTS
+
+; --- KROK 2: Funkcja "alokująca" 1 KB (1024 bajty = $0400) ---
+alloc_1kb:
+        ; 1. Przypisz aktualny adres wolnej pamięci do naszego bufora
+        LDA FREE_MEM
+        STA BUFOR_PTR
+        LDA FREE_MEM+1
+        STA BUFOR_PTR+1
+
+        ; 2. Przesuń wskaźnik wolnej pamięci (FREE_MEM) o 1024 bajty ($0400) w górę
+        CLC
+        LDA FREE_MEM
+        ADC #$00        ; Dodajemy 0 do młodszego bajtu
+        STA FREE_MEM
+        
+        LDA FREE_MEM+1
+        ADC #$04        ; Dodajemy 4 do starszego bajtu (bo $0400 to 4 strony po 256 bajtów)
+        STA FREE_MEM+1
+        
+        RTS             ; Po powrocie podwójny wskaźnik BUFOR_PTR wskazuje Twój nowy 1KB bufor!
+        
+Gdy uruchomisz alloc_1kb, w zmiennej BUFOR_PTR otrzymasz gotowy 16-bitowy adres (np. $C000), pod którym możesz operować na swoim buforze, a system automatycznie zapamięta, że kolejne wolne miejsce zaczyna się dopiero od $C400.
+
+Architektura pamięci Commodore 64 ma pojemność **64 KB**, ale nie jest to jednolita, pusta przestrzeń. Ze względu na obecność wbudowanego interpretera BASIC, systemu operacyjnego KERNAL, rejestrów układów specjalizowanych (VIC-II, SID, CIA) oraz pamięci ekranu, pamięć C64 jest podzielona na stałe strefy.
+
+Zrozumienie tej mapy jest kluczowe, aby Twój program w kodzie maszynowym nie nadpisał systemowych danych i nie spowodował zawieszenia komputera (*crash*).
+
+---
+
+### Mapa pamięci Commodore 64 (Widok standardowy)
+
+| Zakres adresów (Hex) | Rozmiar | Co się tam znajduje? | Czy jest bezpieczne? |
+| --- | --- | --- | --- |
+| **`$0000 – $00FF`** | 256 bajtów | **Strona zerowa (Zero Page)** – używana przez system, BASIC i KERNAL. | *Ostrożnie:* Wolne są m.in. `$FB–$FE`. |
+| **`$0100 – $01FF`** | 256 bajtów | **Stos sprzętowy (Stack)** – zarządzany automatycznie przez procesor (`JSR`, `RTS`, `PHA`). | **NIE** (nadpisanie grozi zawieszeniem). |
+| **`$0200 – $0333`** | 308 bajtów | Wektory systemowe, bufor klawiatury. | *Ostrożnie:* Lepiej nie ruszać bez wiedzy. |
+| **`$0334 – $03FC`** | 201 bajtów | **Bufor magnetofonowy (Cassette Buffer)**. | **TAK**, jeśli nie używasz magnetofonu (świetne na małe procedury/bufory). |
+| **`$0400 – $07E7`** | 1000 bajtów | **Pamięć ekranu tekstowego** (40x25 znaków). | **NIE** (chyba że celowo zmieniasz wygląd ekranu). |
+| **`$07E8 – $07FF`** | 24 bajty | Wolna pamięć (często używana na małe zmienne). | **TAK** |
+| **`$0801 – $9FFF`** | ok. 38 KB | **Obszar pamięci RAM dla BASIC-a**. | **TAK**, domyślne miejsce na programy użytkownika. |
+| **`$A000 – $BFFF`** | 8 KB | **BASIC ROM** (ukryty pod spodem RAM, widoczny interpreter). | *Zależy* (można wyłączyć ROM). |
+| **`$C000 – $CFFF`** | **4 KB** | **Czysta pamięć RAM** (nic tu domyślnie nie ma!). | **BARDZO BEZPIECZNE** (idealne na kod maszynowy). |
+| **`$D000 – $DFFF`** | 4 KB | **Rejestry I/O** (VIC-II, SID, CIA) oraz Znakowy ROM (Character ROM). | **NIE** (zapis tu steruje grafiką/dźwiękiem). |
+| **`$E000 – $FFFF`** | 8 KB | **KERNAL ROM** (system operacyjny C64). | *Zależy* (można wyłączyć ROM). |
+
+---
+
+### Gdzie najbezpieczniej umieścić własny kod maszynowy i bufory?
+
+W zależności od tego, jak piszesz swój program, masz do dyspozycji kilka bezpiecznych obszarów:
+
+#### 1. Obszar `$C000 – $CFFF` (4 KB) – Królestwo programistów ASM
+
+To absolutnie najbezpieczniejsze miejsce w standardowym C64. Żaden BASIC, żaden KERNAL i żaden systemowy bufor tam nie zaglądają. Jeśli piszesz czysty program w kodzie maszynowym (np. grę lub procedurę), najczęściej umieszczasz go właśnie pod adresem `$C000`.
+
+#### 2. Obszar za programem BASIC (`$0801` w górę)
+
+Jeśli Twój program składa się z małej linijki w BASIC-u (np. `10 SYS 4096`), która jedynie uruchamia kod maszynowy, to sam kod maszynowy możesz wkleić tuż za nagłówkiem BASIC-a (np. pod adresem `$1000`). BASIC „nie wie”, że pod jego koniec znajduje się obcy kod, o ile nie zażąda zbyt dużo pamięci (`NEW` lub wczytanie dużego programu może go nadpisać).
+
+#### 3. Bufor magnetofonowy (`$0334 – $03FC`)
+
+Jeśli potrzebujesz małego bufora na zmienne lub krótkiej procedury (do ~190 bajtów), a Twoja gra/program nie korzysta z magnetofonu (tzw. *Datasette*), ten obszar jest całkowicie bezpieczny i darmowy.
+
+#### 4. Tryb bez-ROM-owy (Pełne 64 KB RAM-u)
+
+Wspomniany wcześniej port wejścia/wyjścia procesora MOS 6510 (pod adresem `$01`) pozwala programowo **wyłączyć pamięci ROM** (zarówno BASIC, jak i KERNAL) oraz znakowy ROM.
+
+* Gdy wyłączysz ROM-y, pod adresami `$A000–$BFFF` oraz `$E000–$FFFF` pojawia się **ukryty pod spodem czysty RAM**.
+* Z tej techniki korzystają zaawansowane gry i demony na C64, zyskując do dyspozycji niemal całe 64 KB pamięci, ale muszą wtedy samodzielnie obsługiwać przerwania procesora (bo odcięty zostaje KERNAL).
