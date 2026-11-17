@@ -94,7 +94,7 @@ The effective option precedence is:
 CLI arguments > *.toml settings > host-platform defaults
 ```
 
-The CLI accepts a source path, `--arch`, `--format`, `-o/--output`, and `-d/--debug`. TOML settings may define `[dasm.options]`, `[dasm.env]`, and `[dasm.imports].paths`.
+The CLI accepts a source path, `--arch`, `--format`, `-o/--output`, `-d/--debug`, and `-l/--log`. TOML settings may define `[dasm.options]`, `[dasm.env]`, and `[dasm.imports].paths`.
 
 Keep output behavior compatible unless the task explicitly changes it:
 

@@ -74,6 +74,19 @@ Show command-line help:
 python3 dasm.py --help
 ```
 
+Enable assembler diagnostics with `-l`/`--log`. Without a value all modules
+are logged; a value filters groups by package name (`lang`, `lang.preprocess`,
+`lang+utils`):
+
+```bash
+python3 dasm.py program.dasm --arch mos6502 --format prg --log
+python3 dasm.py program.dasm --arch mos6502 --format prg --log lang.preprocess
+```
+
+Log lines are written to stdout as `[logger.name] message` and are disabled by
+default. `--log` is independent of `-d/--debug`, which only sets the `debug`
+option for the output backends.
+
 A successful compilation runs through parsing, architecture assembly, format encoding, and binary output. If no output path is provided, the source filename is reused with the selected format extension:
 
 ```
@@ -191,6 +204,7 @@ Detailed documentation is available in the [`docs/`](docs/) directory:
 | [Language syntax](docs/syntax.md) | Labels, registers, assignments, calls, directives, strings, and limitations. |
 | [Preprocessor](docs/preprocess_set.md) | `.set`, configuration constants, substitutions, and column mapping. |
 | [Imports](docs/import.md) | `.import`, search paths, environment variables, duplicates, and cycles. |
+| [Logging](docs/logging.md) | `utils/log.py`, the `--log` argument, groups, and filters. |
 | [Architecture backends](docs/architectures.md) | Architecture interfaces, relocation, and backend implementation status. |
 | [Output formats](docs/formats.md) | Output-format interfaces and supported formats. |
 | [WebAssembly](docs/wasm.md) | WebAssembly backend and binary-format details. |

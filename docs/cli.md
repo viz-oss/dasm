@@ -22,11 +22,28 @@ początku: `dasm v2.0.2`.
 | `--format NAME` | format: `bin`, `elf`, `hex`, `macho`, `prg`, `wasm`, `exe` |
 | `-o`, `--output PATH` | nazwa pliku wyjściowego |
 | `-d`, `--debug` | zapisuje `debug = True` w opcjach; obecnie nie ma innego efektu |
+| `-l`, `--log [GRUPY]` | włącza logi: bez wartości wszystkie moduły, z wartością wybrane grupy (`lang`, `lang.preprocess`, `lang+utils`) |
 | `-h`, `--help` | pomoc argparse |
 
 > `x86`, `elf` i `exe` pozostają placeholderami bez `EXPORTS` i ich
 > użycie kończy się błędem `DasmSyntaxError`. Backend `alu48` jest
 > zintegrowany z `Architecture` i loaderem.
+
+## Logowanie
+
+Argument `-l`/`--log` włącza logi asemblera. Pusty argument loguje
+wszystkie moduły; wartość filtruje grupy nazwane jak pakiety (`lang`,
+`lang.preprocess`, `lang+utils`):
+
+```bash
+python3 dasm.py program.dasm --arch mos6502 --format prg --log
+python3 dasm.py program.dasm --arch mos6502 --format prg --log lang.preprocess
+```
+
+Wpisy mają postać `[nazwa.loggera] komunikat` i trafiają na stdout. Domyślnie
+logi są wyłączone. `--log` jest niezależny od `-d/--debug`, które tylko
+ustawia opcję `debug`. Szczegóły, grupy i sposób dodawania logów w nowych
+modułach opisuje [logging.md](logging.md).
 
 ## Domyślne architektura i format
 
@@ -97,6 +114,9 @@ plik PRG bez dodatkowych flag.
 | błąd składni/preprocesora | `1` | `<plik>:<linia>:<kolumna>: syntax error` + treść błędu na `stderr` |
 | błąd argumentów | `2` | komunikat argparse |
 | błąd modułu/formatowania | — | nieprzechwycony wyjątek (traceback Pythona) |
+
+Logi (`--log`) idą na stdout i nie zmieniają kodów wyjścia; diagnostyka
+błędów pozostaje na stderr. Opis systemu logów: [logging.md](logging.md).
 
 Błędy składni są relokowane do oryginalnego pliku i linii (także po
 `.import`), a kolumna do oryginalnego tekstu przed podmianą stałych. Szczegóły:

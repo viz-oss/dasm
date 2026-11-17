@@ -12,6 +12,7 @@ architektur oraz formatów wyjściowych.
 | [syntax.md](syntax.md) | składnia języka: etykiety, rejestry, przypisania, wywołania, dyrektywy |
 | [preprocess_set.md](preprocess_set.md) | preprocesor: `.set`, stałe z konfiguracji, podmiany i mapowanie kolumn |
 | [import.md](import.md) | `.import`, wyszukiwanie plików, zmienne środowiskowe, duplikaty i cykle |
+| [logging.md](logging.md) | system logów `utils/log.py`, argument `--log`, grupy i filtry |
 | [architectures.md](architectures.md) | interfejs architektury i stan implementacji backendów |
 | [formats.md](formats.md) | interfejs formatu i opis formatów wyjściowych |
 | [wasm.md](wasm.md) | szczegóły backendu i formatu WebAssembly |
