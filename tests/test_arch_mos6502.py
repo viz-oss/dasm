@@ -3,13 +3,14 @@
 import pytest
 
 from arch.mos6502 import MOSArchitecture
-from lang.abstract import Arg, Bytes, Call, Exit, Int, Label, Mov, Ptr, Reg, Return, Start, Text
+from lang.abstract import Arg, Raw, Call, Exit, Int, Label, Mov, Ptr, Reg, Return, Start
+
 
 def test_call_backward_label():
     arch = MOSArchitecture()
     ast = [
         Label('start'),
-        Bytes(1, (Int(0x60),)),
+        Raw(1, (Int(0x60),)),
         Call('start'),
     ]
 
@@ -17,12 +18,13 @@ def test_call_backward_label():
 
     assert words == [0x60, 0x20, 0x0D, 0x08]
 
+
 def test_call_forward_label():
     arch = MOSArchitecture()
     ast = [
         Call('start'),
         Label('start'),
-        Bytes(1, (Int(0x60),)),
+        Raw(1, (Int(0x60),)),
     ]
 
     words = arch.assembly(ast, origin=0x080D)
@@ -47,8 +49,8 @@ def test_call_with_args_relocates_after_arguments():
     ast = [
         Label('fn'),
         Call('fn', (
-            Arg('a', Int(1), _reg=Reg(0)),
-            Arg('b', Int(2), _reg=Reg(1)),
+            Arg('a', Int(1), reg=Reg(0)),
+            Arg('b', Int(2), reg=Reg(1)),
         )),
     ]
 
@@ -89,9 +91,9 @@ def test_entry_jump_shifts_labels_and_relocations():
     ast = [
         Start('main'),
         Label('exit'),
-        Bytes(1, (Int(0x60),)),
+        Raw(1, (Int(0x60),)),
         Label('main'),
-        Bytes(1, (Int(0xA9),)),
+        Raw(1, (Int(0xA9),)),
         Call('exit'),
     ]
 
@@ -107,9 +109,9 @@ def test_entry_without_jump():
     ast = [
         Start('main'),
         Label('exit'),
-        Bytes(1, (Int(0x60),)),
+        Raw(1, (Int(0x60),)),
         Label('main'),
-        Bytes(1, (Int(0xA9),)),
+        Raw(1, (Int(0xA9),)),
     ]
 
     words = arch.assembly(ast, origin=0x080D, start='main')
@@ -199,9 +201,3 @@ def test_unimplemented_addressing_modes(method):
     with pytest.raises(NotImplementedError):
         getattr(arch, method)(None)
 
-
-def test_bytes_and_text_instructions():
-    arch = MOSArchitecture()
-    ast = [Bytes(1, (Int(0x60),)), Text('ignored'), Bytes(1, (Int(0x01),))]
-
-    assert arch.assembly(ast) == [0x60, 0x01]

@@ -1,12 +1,9 @@
 """Unit tests for parsing syntax"""
 
 import pytest
-from lang.abstract import (
-    Start, Label, Mov, Reg, Ptr, Arg, Call, Int, Param,
-    Bytes, Exit, Return, Text,
-)
+from lang.abstract import Start, Label, Mov, Reg, Ptr, Arg, Call, Int, Param, Raw, Exit, Return
 from lang.syntax import AST, parse, DasmSyntaxError
-
+from lang.symbols import resolve
 
 def test_missing_value():
     with pytest.raises(DasmSyntaxError) as e:
@@ -52,9 +49,9 @@ def test_call():
             Param('buf', Reg(2)))
         ),
         Call('foo2', (
-            Arg('color', Int(1), _reg=Reg(n=0)),
-            Arg('size', Int(2), _reg=Reg(n=1)),
-            Arg('buf', Int(3), _reg=Reg(n=2)))
+            Arg('color', Int(1), reg=Reg(n=0)),
+            Arg('size', Int(2), reg=Reg(n=1)),
+            Arg('buf', Int(3), reg=Reg(n=2)))
         )
     ]
 
@@ -104,21 +101,6 @@ def test_statement_to_memory():
     assert parse('foo = r0\n') == [Mov(Ptr('foo'), Reg(0))]
 
 
-def test_text_directive():
-    assert parse('.text "hello"\n') == [Text('hello')]
-
-
-@pytest.mark.parametrize("text, size, values", [
-    ('.b 1\n', 1, (1,)),
-    ('.b8 1, 2\n', 1, (1, 2)),
-    ('.b16 0x10, 0x20\n', 2, (0x10, 0x20)),
-    ('.b32 -1\n', 4, (-1,)),
-    ('.b64 0\n', 8, (0,)),
-])
-def test_bytes_directives(text, size, values):
-    assert parse(text) == [Bytes(size, tuple(Int(v) for v in values))]
-
-
 def test_exit_directive():
     assert parse('.exit\n') == [Exit()]
 
@@ -132,8 +114,6 @@ def test_return_directive():
 @pytest.mark.parametrize("text", [
     '.bogus\n',
     '.foo 1, 2\n',
-    '.b8 "x"\n',
-    '.text 1\n',
 ])
 def test_unknown_or_misused_directives(text):
     with pytest.raises(DasmSyntaxError, match='unknown or misused directive'):
@@ -173,4 +153,29 @@ def test_ast_filter():
 
 def test_block_comments():
     ast = parse("/* a */ r0 = 1\n\"\"\"\nopis\n\"\"\"\nr1 = 2")
+
     assert ast == [Mov(Reg(0), Int(1)), Mov(Reg(1), Int(2))]
+
+
+def test_raw():
+    assert parse(".raw 0 * 1024") == [Raw(8, (Int(0),), 1024)]
+    assert parse(".raw 1, 2 * 3") == [Raw(8, (Int(1), Int(2)), 3)]
+    assert parse(".raw(16) 0xFFFF * 4") == [Raw(16, (Int(65535),), 4)]
+    assert parse(".raw('ascii') 'ab' * 2") == [Raw('ascii', 'ab', 2)]
+    assert parse('.raw("utf-8") "zażółć"') == [Raw('utf-8', 'zażółć', 1)]
+
+
+@pytest.mark.parametrize("src", [
+    ".raw(12) 1", ".raw('latin1') 'x'", ".raw(16) 'abc'", ".raw('ascii') 5",
+    ".raw 0 * 0", ".raw 0 * -1", ".raw 'abc'", '.raw("\\x4") ', ".raw 007",
+])
+def test_raw_errors(src):
+    with pytest.raises(DasmSyntaxError):
+        parse(src)
+
+
+def test_resolve_named_args_any_order():
+    src = "foo(a: r0, b: r1):\nreturn\nfoo(b = 1, a = 2)\n"
+    out = resolve(parse(src))
+    call = out.filter(typeof=Call)[0]
+    assert call.args[0].reg == Reg(1) and call.args[1].reg == Reg(0)

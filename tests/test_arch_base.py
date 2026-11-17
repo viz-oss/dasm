@@ -4,7 +4,7 @@ import pytest
 
 from arch.base import Architecture, Relocation
 from arch.mos6502 import MOSArchitecture
-from lang.abstract import Bytes, Call, Int, Label, Text
+from lang.abstract import Raw, Call, Int, Label
 
 
 def test_relocation_defaults():
@@ -17,21 +17,15 @@ def test_relocation_defaults():
 def test_bytes_are_emitted():
     arch = MOSArchitecture()
 
-    assert arch.assembly([Bytes(1, (Int(0x60), Int(0x01)))]) == [0x60, 0x01]
-    assert arch.assembly([Bytes(1, (Int(255),))]) == [255]
+    assert arch.assembly([Raw(1, (Int(0x60), Int(0x01)))]) == [0x60, 0x01]
+    assert arch.assembly([Raw(1, (Int(255),))]) == [255]
 
 
 def test_byte_out_of_range():
     arch = MOSArchitecture()
 
     with pytest.raises(AssertionError):
-        arch.assembly([Bytes(1, (Int(256),))])
-
-
-def test_text_emits_nothing():
-    arch = MOSArchitecture()
-
-    assert arch.assembly([Text('ignored')]) == []
+        arch.assembly([Raw(1, (Int(256),))])
 
 
 def test_address_out_of_range():

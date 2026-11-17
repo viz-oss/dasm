@@ -2,7 +2,7 @@
 
 from arch.mos6502 import MOSArchitecture
 from format.prg import FormatPrg
-from lang.abstract import Bytes, Call, Int, Label, Start
+from lang.abstract import Raw, Call, Int, Label, Start
 
 
 def test_origin_points_after_basic_stub():
@@ -28,7 +28,7 @@ def test_call_is_relocated_to_prg_origin():
     fmt = FormatPrg()
     ast = [
         Label('start'),
-        Bytes(1, (Int(0x60),)),
+        Raw(1, (Int(0x60),)),
         Call('start'),
     ]
 
@@ -44,9 +44,9 @@ def test_start_adds_jump_to_entry_point():
     ast = [
         Start('main'),
         Label('exit'),
-        Bytes(1, (Int(0x60),)),
+        Raw(1, (Int(0x60),)),
         Label('main'),
-        Bytes(1, (Int(0xA9),)),
+        Raw(1, (Int(0xA9),)),
         Call('exit'),
     ]
 

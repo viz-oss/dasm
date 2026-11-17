@@ -4,31 +4,28 @@ These exceptions carry detailed context about where and why the parsing failed.
 """
 
 class DasmSyntaxError(Exception):
-    """
-    Exception raised when a syntax error is encountered during parsing.
-    """
+    """Syntax or semantic error with optional source position."""
 
-    line: int | None # The line number in the source file where the error occurred.
-    col: int | None # The column number in the source file where the error occurred.
-    expected: list[str] | None # A list of tokens or constructs that were expected at the error point.
-    message: str # A detailed description of the error.
-    file: str | None # The path to the source file where the error occurred.
-    map_columns: bool # Flag indicating if column mapping information is available/used.
-    context: bool # Flag indicating if additional context (e.g., caret visualization) is available.
-
-    def __init__(self, line: int | None = None, col: int | None = None, expected: list[str] | None = None, message: str = '', file: str | None = None, map_columns: bool = False, context: bool = False):
+    def __init__(self, line: int | None = None, col: int | None = None,
+                 expected: list[str] | None = None, message: str = '',
+                 file: str | None = None, map_columns: bool = False,
+                 context: bool = False):
+        super().__init__(message)
         self.line, self.col, self.expected, self.message = line, col, expected, message
         self.file = file
-        self.map_columns = map_columns
-        self.context = context
-        msg = ""
-        if expected is not None: msg += f"Expected {' or '.join(expected)}\n\n"
-        msg += message
-        super().__init__(msg)
+        self.map_columns = map_columns   # col refers to preprocessed text, needs mapping back
+        self.context = context           # message already contains a source excerpt
+
+    def location(self) -> str:
+        parts = [self.file or '<input>']
+        if self.line is not None:
+            parts.append(str(self.line))
+            if self.col is not None:
+                parts.append(str(self.col))
+        return ':'.join(parts)
 
     def __str__(self):
         msg = ""
-        if self.expected is not None:
+        if self.expected:
             msg += f"Expected {' or '.join(self.expected)}\n\n"
-        msg += self.message
-        return msg
+        return msg + self.message

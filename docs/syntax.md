@@ -115,62 +115,48 @@ return 5
 
 ## Dyrektywy
 
-Dyrektywy zaczynają się od kropki i są zapisane małymi literami. Każda musi
-wystąpić w osobnej linii.
+Dyrektywy zaczynają się od kropki i są zapisane małymi literami. Każda musi wystąpić w osobnej linii.
 
 | Dyrektywa | Argument | Znaczenie |
 |---|---|---|
 | `.start <etykieta>` | nazwa | punkt wejścia programu; duplikat jest błędem |
 | `.exit` | brak | wyjście z programu |
-| `.text "..."` | string | tekst; parser tworzy `Text`, ale obecne backendy nic nie emitują |
-| `.b N` / `.b8 N` | lista liczb | bajty (`Bytes`, rozmiar 1) |
-| `.b16 N` | lista liczb | liczby 16-bitowe (`Bytes`, rozmiar 2) |
-| `.b32 N` | lista liczb | liczby 32-bitowe (`Bytes`, rozmiar 4) |
-| `.b64 N` | lista liczb | liczby 64-bitowe (`Bytes`, rozmiar 8) |
+| `.raw('ascii') '...'` | string | tekst ascii; parser tworzy `Raw`, ale obecne backendy nic nie emitują |
+| `.raw('petcii') '...'` | string | tekst petcii (Commodore); parser tworzy `Raw`, ale obecne backendy nic nie emitują |
+|  `.raw('utf-8') '...'`| string | tekst utf-8; parser tworzy `Raw`, ale obecne backendy nic nie emitują |
+|  `.raw('utf-16') '...'`|  string|stekst utf-16; parser tworzy `Raw`, ale obecne backendy nic nie emitują  |
+| `.raw` / `.raw(8)` | lista liczb | bajty (`Raw`, rozmiar 1) |
+| `.raw(16)` | lista liczb | liczby 16-bitowe (`Raw`, rozmiar 2) |
+| `.raw(32)` | lista liczb | liczby 32-bitowe (`Raw`, rozmiar 4) |
+| `.raw(64)` | lista liczb | liczby 64-bitowe (`Raw`, rozmiar 8) |
 
 ```asm
 .start main
-.text "Hello"
-.b8 0x60, 0x01
-.b16 1, 2
+.exit
+.raw("ascii") "Hello"
+.raw('utf-8') 'Dzień dobry'
+.raw(8) 0x60, 0x01
+.raw(16) 1, 2
 ```
 
-Uwagi o `.bN`:
-
-- Parser zapisuje `size` w `Bytes`, ale bazowa implementacja
-  `Architecture.bytes()` **ignoruje rozmiar** i emituje jedną wartość jako
-  jeden bajt (endianność i wielobajtowość są dopiero do zaimplementowania).
-- Dlatego każda wartość musi mieścić się w zakresie `0..255`; np.
-  `.b16 0x1234` zakończy się `AssertionError` w obecnej implementacji.
-- `255` jest poprawne, `256` już nie.
-
-Nieznana lub źle użyta dyrektywa daje
-`unknown or misused directive <nazwa>`.
+Nieznana lub źle użyta dyrektywa daje `unknown or misused directive <nazwa>`.
 
 ## Stringi
 
-Stringi są w podwójnych cudzysłowach i obsługują escape'y Pythona:
+Stringi są w podwójnych lub pojedynczych cudzysłowach i obsługują escape'y Pythona:
 
 ```asm
-.text "Hello\n"
+.raw("ascii") "Hello\n"
 ```
-
-Pojedyncze cudzysłowy w źródle nie są stringami (występują tylko w składni
-`.import`). Błędny escape, np. `"\x"`, daje
-`invalid literal: ...`.
 
 ## Ograniczenia składni
 
 - Brak operatorów arytmetycznych w źródle — `r0 + 2` nie jest obsługiwane.
 - Brak etykiet lokalnych, sekcji, makr i warunkowej kompilacji.
-- Brak wieloliniowych stringów i komentarzy blokowych.
+- Brak wieloliniowych stringów.
 - Brak typów i deklaracji zmiennych — wszystko jest rejestrem albo adresem.
 - `return`, `rN` i nazwy dyrektyw są zarezerwowane; `return_value` jest już
   poprawną nazwą.
 - Etykiety i nazwy są wrażliwe na wielkość liter (`Foo` ≠ `foo`).
 - Semantyczne błędy parsera (duplikat `.start`, brak etykiety wywołania,
   niezgodna liczba argumentów) nie mają jeszcze numeru linii i kolumny.
-
-Przykładowe, działające pliki znajdują się w `examples/` (np. `1.dasm`,
-`c64.dasm`, `c64sid.dasm`); część pozostałych plików to notatki projektowe,
-nie kod do skompilowania.

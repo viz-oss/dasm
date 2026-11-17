@@ -5,7 +5,7 @@ import pytest
 import arch.alu48 as alu48
 from arch.alu48 import Alu4Architecture
 from bootstrap.modules import load_module
-from lang.abstract import Bytes, Int
+from lang.abstract import Raw, Int
 
 
 def test_loader_uses_the_new_exports_name():
@@ -18,7 +18,7 @@ def test_backend_uses_the_current_architecture_interface():
 
     assert arch.word_size == 1
     assert arch.endian == "little"
-    assert arch.assembly([Bytes(1, (Int(0xA5),))]) == [0xA5]
+    assert arch.assembly([Raw(1, (Int(0xA5),))]) == [0xA5]
 
 
 @pytest.mark.parametrize(

@@ -33,7 +33,7 @@ zaimplementowane (mogą na razie rzucać `NotImplementedError`). Bazowa
    - `Label` — zapis przesunięcia w bajtach (`len(output) * word_size`),
    - `Mov` → `mov()`,
    - `Call` → `call(instr, offset=len(output))`,
-   - `Bytes` → `bytes()` (domyślnie jeden bajt na wartość, `size` ignorowany),
+   - `Raw` → `raw()` (domyślnie jeden bajt na wartość),
    - `Text` → `text()` (domyślnie nic nie emituje),
    - `Return` → `ret()`,
    - `Exit` → `exit()`,
@@ -70,7 +70,7 @@ Rejestry wirtualne: `r0` = A, `r1` = X, `r2` = Y.
   - `r0/r1/r2 = <0..255>` → `LDA/LDX/LDY #imm` (`0xA9`, `0xA2`, `0xA0`),
   - `@<0..65535> = r0/r1/r2` → `STA/STX/STY absolute` (`0x8D`, `0x8E`, `0x8C`),
   - pozostałe kombinacje → `NotImplementedError`.
-- `call`: argumenty są emitowane przez `mov()` do rejestrów z `Arg._reg`,
+- `call`: argumenty są emitowane przez `mov()` do rejestrów z `Arg.reg`,
   następnie `JSR` (`0x20`) z 2-bajtową relokacją adresu. Obecnie działają
   argumenty będące liczbami; rejestry i wskaźniki wymagają trybów `mov`,
   których jeszcze nie ma.

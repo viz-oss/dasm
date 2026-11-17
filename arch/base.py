@@ -66,8 +66,8 @@ class Architecture(ABC):
                     output += self.mov(instr)
                 case 'Call':
                     output += self.call(instr, offset=len(output))
-                case 'Bytes':
-                    output += self.bytes(instr)
+                case 'Raw':
+                    output += self.raw(instr)
                 case 'Text':
                     output += self.text(instr)
                 case 'Return':
@@ -105,7 +105,7 @@ class Architecture(ABC):
                 address.to_bytes(reloc.size, byteorder=reloc.endian)
             )
 
-    def bytes(self, instr) -> list[int]:
+    def raw(self, instr) -> list[int]:
         """
         Emits raw byte data as a list of unsigned byte values (0-255).
         :param instr: The instruction object containing byte values.
