@@ -54,7 +54,7 @@ def collect(ast: AST, externs: frozenset[str] | set[str] = frozenset()) -> Symbo
             if node.name in labels:
                 raise DasmSyntaxError(message=f"label '{node.name}' defined twice")
             _check_signature(node)
-            logger.info(f"Collect '{node.name}' = {node.params}")
+            logger.info(f"Collect '{node.name}'{f' = {node.params}' if node.params else ''}")
             labels[node.name] = node
 
     clash = labels.keys() & set(externs)
