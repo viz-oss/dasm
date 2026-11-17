@@ -14,7 +14,7 @@ from .sourcemap import ColumnMap, ColumnSegment
 
 _TOKEN_RE = re.compile(expand(r'''
     (?P<comment>;[^\r\n]*|\#[^\r\n]*|//[^\r\n]*)
-  | (?P<string>"(?:\\.|[^"\\\r\n])*")
+  | (?P<string><<QUOTED_STRING>>)
   | (?P<label><<IDENT>>:)
   | (?P<directive>\.[a-z]\w*)
   | (?P<number>[0-9]\w*)
@@ -24,9 +24,9 @@ _TOKEN_RE = re.compile(expand(r'''
 '''), re.VERBOSE)
 
 _MASK_RE = re.compile(r'''
-    (?P<line>;[^\r\n]*|\#[^\r\n]*|//[^\r\n]*)      # line comment: skip, may contain /*
+    (?P<line>;[^\r\n]*|\#[^\r\n]*|//[^\r\n]*)
   | (?P<block>/\*[\s\S]*?\*/|"""[\s\S]*?""")
-  | (?P<string>"(?:\\.|[^"\\\r\n])*")              # skip, may contain /*
+  | (?P<string><<QUOTED_STRING>>)
 ''', re.VERBOSE)
 
 _REG_RE = re.compile(r'r[0-9]+')

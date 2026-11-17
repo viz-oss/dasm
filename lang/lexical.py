@@ -19,12 +19,18 @@ IDENT_START = '(?:[^\\W\\d]|[' + _EMOJI + '])'
 IDENT_CONT = '(?:\\w|[' + _EMOJI + _JOINERS + _MARKS + '])'
 IDENT = IDENT_START + IDENT_CONT + '*'
 
+# r0 | r1 | r2 ... rN
 REG = 'r[0-9]+'
+
+# "string" | 'string'
+QUOTED_STRING = r"""["'](\\.|[^"'\\\r\n])*["']"""
 
 
 def expand(pattern: str) -> str:
-    """Replace <<IDENT>>, <<CONT>> and <<REG>> placeholders."""
+    """Replace <<*>> placeholders."""
     return (pattern
             .replace('<<IDENT>>', IDENT)
             .replace('<<CONT>>', IDENT_CONT)
-            .replace('<<REG>>', REG))
+            .replace('<<REG>>', REG)
+            .replace('<<QUOTED_STRING>>', QUOTED_STRING)
+            )
