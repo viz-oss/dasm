@@ -36,14 +36,14 @@ examples/            # przykłady (część to notatki projektowe, nie działaj�
   → resolve_with_map()    # .import: wklejenie plików + SourceMap
   → preprocess_with_map() # .set i stałe z TOML + ColumnMap
   → parse()               # AST
-  → lang.symbols.resolve() # opcjonalna walidacja semantyczna
+  → lang.symbols.resolve() # walidacja semantyczna
   → Architecture.assembly()
   → Format.output()
   → plik wyjściowy
 ```
 
-`resolve()` nie jest jeszcze wywoływane przez `dasm.py`; służy jako osobny krok
-API do walidacji symboli i sygnatur wywołań.
+`dasm.py` wywołuje `resolve()` przed assembly, dzięki czemu rejestry argumentów
+wywołań są uzupełniane, a błędy symboli są zgłaszane przed generowaniem kodu.
 
 ## Stan implementacji
 

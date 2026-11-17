@@ -13,7 +13,7 @@ DASM is a multi-architecture assembler with a small high-level language. Its com
   -> import resolution and source mapping
   -> preprocessing (.set and TOML constants)
   -> parsing into an AST
-  -> optional semantic resolution with lang.symbols.resolve()
+  -> semantic resolution with lang.symbols.resolve()
   -> architecture backend assembly
   -> output-format encoding
   -> output file
@@ -101,7 +101,7 @@ Keep output behavior compatible unless the task explicitly changes it:
 - Output is written in binary mode.
 - The selected format supplies the output extension.
 - `-o name` receives the format extension when it is missing.
-- Import, syntax, and preprocessing failures return a non-zero status and include source location information. Semantic resolution is a separate library step and is not currently called by the CLI.
+- Import, syntax, preprocessing, and semantic-resolution failures return a non-zero status and include source location information where available.
 
 ## Python style
 

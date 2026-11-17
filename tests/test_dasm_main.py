@@ -127,6 +127,22 @@ def test_entry_jump_from_start_label(tmp_path, monkeypatch):
     assert output[17:] == bytes([0xA9, 0x01])
 
 
+def test_mos6502_call_resolves_named_argument_register(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _write(
+        tmp_path / 'call.dasm',
+        'foo(value: r0):\nreturn\nfoo(value = 14)\n',
+    )
+
+    code = dasm.main([
+        'call.dasm', '--arch', 'mos6502', '--format', 'prg',
+    ])
+
+    assert code == 0
+    output = (tmp_path / 'call.prg').read_bytes()
+    assert output[15:17] == bytes([0xA9, 0x0E])
+
+
 def test_default_target_per_platform():
     assert dasm.default_target('darwin') == ('arm64', 'macho')
     assert dasm.default_target('linux') == ('x86', 'elf')

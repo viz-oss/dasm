@@ -35,9 +35,8 @@ DasmSyntaxError(
 
 Błędy resolvera symboli to m.in. `label 'foo' defined twice`,
 `call: unknown label 'foo'`, `missing arguments ['a']`, nieznany parametr oraz
-`unknown symbol 'name'`. Nie mają jeszcze numeru linii ani kolumny. Resolver jest
-osobnym API i nie jest obecnie wywoływany przez CLI, więc te błędy nie pojawiają
-się w zwykłym przebiegu `dasm.py`.
+`unknown symbol 'name'`. Nie mają jeszcze numeru linii ani kolumny, ale CLI
+wywołuje resolver przed assembly i przechwytuje te błędy jako `DasmSyntaxError`.
 
 ## Potok relokacji
 
@@ -47,7 +46,7 @@ się w zwykłym przebiegu `dasm.py`.
 resolved = resolve_with_map(...)          # pliki + SourceMap
 preprocessed = preprocess_with_map(...)   # .set + ColumnMap
 ast = parse(preprocessed.text)
-# Opcjonalnie: ast = lang.symbols.resolve(ast)
+ast = lang.symbols.resolve(ast)
 except DasmSyntaxError as e:
     e = source_map.relocate(e, preprocessed.column_maps)
 ```

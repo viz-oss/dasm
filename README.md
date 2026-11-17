@@ -114,7 +114,7 @@ Labels may contain Unicode characters, digits, underscores, and emoji, provided 
 
 The exact instructions and addressing modes available depend on the selected architecture backend. Unsupported operations are reported explicitly rather than silently accepted.
 
-Parsing and semantic validation are separate steps. `parse()` creates the AST; `lang.symbols.resolve()` can then validate labels, pointer symbols, call signatures, and fill `Arg.reg`. The current CLI invokes the parser but does not yet invoke the resolver.
+Parsing and semantic validation are separate steps. `parse()` creates the AST; `lang.symbols.resolve()` then validates labels, pointer symbols, call signatures, and fills `Arg.reg` before assembly. The CLI runs both steps.
 
 ## Configuration
 
@@ -158,7 +158,7 @@ The compiler processes a source file in the following order:
   -> import resolution and source mapping
   -> preprocessing (.set and TOML constants)
   -> parsing into an AST
-  -> optional semantic resolution (lang.symbols.resolve)
+  -> semantic resolution (lang.symbols.resolve)
   -> architecture backend assembly
   -> output-format encoding
   -> output file

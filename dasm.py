@@ -9,6 +9,7 @@ import argparse, os, sys
 from lang.preprocess import preprocess_with_map
 from lang.imports import resolve_with_map
 from lang.syntax import parse
+from lang.symbols import resolve
 from lang.abstract import Start
 from lang.exceptions import DasmSyntaxError
 import bootstrap.settings
@@ -110,7 +111,7 @@ def main(argv = None):
         source_map = resolved.source_map
         preprocessed = preprocess_with_map(resolved.text, settings['env'])
         column_maps = preprocessed.column_maps
-        ast = parse(preprocessed.text)
+        ast = resolve(parse(preprocessed.text))
     except DasmSyntaxError as e:
         # If a source map exists, relocate the error to include original source context (line/column mapping).
         if source_map is not None:

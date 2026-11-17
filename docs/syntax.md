@@ -160,7 +160,7 @@ Stringi są w podwójnych lub pojedynczych cudzysłowach i obsługują escape'y 
   poprawną nazwą.
 - Etykiety i nazwy są wrażliwe na wielkość liter (`Foo` ≠ `foo`).
 - `parse()` odpowiada za składnię; walidacja symboli jest osobnym krokiem przez
-  `lang.symbols.resolve(ast)` i nie jest obecnie wywoływana przez CLI.
+  `lang.symbols.resolve(ast)`; CLI wykonuje ten krok przed assembly.
 - Błędy resolvera (duplikaty etykiet, brak etykiety, brakujące argumenty,
   nieznane symbole) nie mają jeszcze numeru linii ani kolumny.
 - `.start` jest sprawdzany przez parser tylko pod kątem formy dyrektywy; kontrolę,
