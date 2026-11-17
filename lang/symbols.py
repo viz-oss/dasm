@@ -54,7 +54,7 @@ def collect(ast: AST, externs: frozenset[str] | set[str] = frozenset()) -> Symbo
             if node.name in labels:
                 raise DasmSyntaxError(message=f"label '{node.name}' defined twice")
             _check_signature(node)
-            logger.info(f"Collect '{node.name}' = {node}")
+            logger.info(f"Collect '{node.name}' = {node.params}")
             labels[node.name] = node
 
     clash = labels.keys() & set(externs)
@@ -101,7 +101,7 @@ def _resolve_call(table: SymbolTable, call: Call, require_all_args: bool) -> Cal
                 message=f"call to '{call.target}': duplicate argument '{a.name}'")
         seen.add(a.name)
         _check_operand(table, a.value, f"call to '{call.target}', argument '{a.name}'")
-        logger.info(f"Resolve call {a} = {params[a.name].reg}")
+        logger.info(f"Resolve {a} = {params[a.name].reg}")
         args.append(replace(a, reg=params[a.name].reg))
 
     if require_all_args:

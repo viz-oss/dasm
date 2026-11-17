@@ -1,6 +1,7 @@
 """Log system"""
 
 import logging, sys
+from pathlib import Path
 
 
 class LogGroupFilter(logging.Filter):
@@ -55,3 +56,13 @@ def green(s: str) -> str:
 
 def gray(s: str) -> str:
     return f"{GRAY}{s}{RESET}" if sys.stdout.isatty() else s
+
+
+def anonymize_path(file_path: str | Path) -> str:
+    path = Path(file_path).resolve()
+    home = Path.home().resolve()
+    try:
+        relative_path = path.relative_to(home)
+        return str(Path('~') / relative_path)
+    except ValueError:
+        return str(path)

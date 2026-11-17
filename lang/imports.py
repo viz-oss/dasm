@@ -11,9 +11,12 @@ translates virtual line numbers back to the original files.
 
 import re
 from pathlib import Path
+import logging
+logger = logging.getLogger(__name__)
 
 from .exceptions import DasmSyntaxError
 from .sourcemap import ResolvedSource, SourceLocation, SourceMap
+from utils.log import anonymize_path
 
 
 _IMPORT_RE = re.compile(
@@ -131,6 +134,7 @@ def _resolve_text(text: str, base_dir: Path, env: dict,
         stack.append(found)
         try:
             imported = _read_import(found, lineno, col, source_path)
+            logger.info(f"File {anonymize_path(found)}")
             if imported.endswith("\n"):
                 imported = imported[:-1]
             imported_lines, imported_locations = _resolve_text(
