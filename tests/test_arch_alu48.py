@@ -4,7 +4,7 @@ import pytest
 
 import arch.alu48 as alu48
 from arch.alu48 import Alu4Architecture
-from bootstrap.modules import load_module
+from utils.modules import load_module
 from lang.abstract import Raw, Int
 
 

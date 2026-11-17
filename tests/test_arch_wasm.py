@@ -3,7 +3,7 @@
 import pytest
 
 from arch.wasm import WasmArchitecture, sleb128, uleb128
-from bootstrap.modules import load_module
+from utils.modules import load_module
 from lang.abstract import Call, Exit, Int, Mov, Ptr, Reg, Return
 
 

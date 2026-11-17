@@ -173,7 +173,7 @@ dasm.py       # Command-line entry point and compilation pipeline
 arch/         # Architecture backends selected with --arch
 format/       # Output-format backends selected with --format
 lang/         # Lexer, imports, preprocessor, parser, AST, symbols, errors, and source maps
-bootstrap/    # Dynamic module loading and TOML settings
+utils/        # Dynamic module loading, TOML settings and log system
 tests/        # Unit and integration tests
 examples/     # Example and exploratory .dasm source files
 docs/         # Detailed language and developer documentation

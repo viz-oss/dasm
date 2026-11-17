@@ -27,7 +27,7 @@ The project is a Python script-based project. It does not currently require inst
 - `lang/`: lexical analysis, imports, preprocessing, parsing, AST types, symbol resolution, errors, and source maps.
 - `arch/`: architecture backends selected with `--arch`.
 - `format/`: output format backends selected with `--format`.
-- `bootstrap/`: dynamic module loading and TOML settings loading.
+- `utils/`: dynamic module loading, TOML settings loading and logging system.
 - `tests/`: unit and integration tests.
 - `examples/`: example and exploratory `.dasm` sources; not every example is expected to be runnable.
 - `docs/`: developer documentation.
@@ -57,7 +57,7 @@ The host-platform defaults are not equally implemented on every platform. On Lin
 
 ## Architecture and format extensions
 
-Architecture and format modules are loaded dynamically by `bootstrap.modules.load_module`. A module must expose `EXPORTS` as a class or factory. Preserve this contract when adding or renaming modules.
+Architecture and format modules are loaded dynamically by `utils.modules.load_module`. A module must expose `EXPORTS` as a class or factory. Preserve this contract when adding or renaming modules.
 
 Before implementing a new backend:
 

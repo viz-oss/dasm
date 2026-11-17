@@ -12,8 +12,8 @@ from lang.syntax import parse
 from lang.symbols import resolve
 from lang.abstract import Start
 from lang.exceptions import DasmSyntaxError
-import bootstrap.settings
-from bootstrap.modules import load_module
+import utils.settings
+from utils.modules import load_module
 
 
 # Default (architecture, format) pair for each host platform.
@@ -75,7 +75,7 @@ def main(argv = None):
     print(f"dasm v{__version__}")
 
     # Settings in *.toml
-    settings = bootstrap.settings.load_all()
+    settings = utils.settings.load_all()
     
     # Options
     default_arch, default_format = default_target()

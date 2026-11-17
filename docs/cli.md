@@ -105,7 +105,7 @@ Błędy składni są relokowane do oryginalnego pliku i linii (także po
 ## Ładowanie modułów
 
 Architektury i formaty są importowane dynamicznie przez
-`bootstrap.modules.load_module(dir, name)`:
+`utils.modules.load_module(dir, name)`:
 
 1. `dir` i `name` mogą zawierać tylko litery, cyfry i `_`,
 2. importowany jest moduł `dir.name` (z cache `lru_cache(32)`),

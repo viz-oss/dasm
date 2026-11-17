@@ -2,7 +2,7 @@
 
 import pytest
 
-from bootstrap.settings import load_all, load_toml
+from utils.settings import load_all, load_toml
 
 
 def test_load_toml(tmp_path):

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from lang.exceptions import DasmSyntaxError
-from bootstrap.modules import load_module
+from utils.modules import load_module
 
 
 # 1. SUCCESS TEST: Module exists, has EXPORTS, and returns a valid object

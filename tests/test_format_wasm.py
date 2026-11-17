@@ -6,7 +6,7 @@ import subprocess
 import pytest
 
 from arch.wasm import WasmArchitecture
-from bootstrap.modules import load_module
+from utils.modules import load_module
 from format.wasm import FormatWasm, _uleb128
 from lang.abstract import Int, Mov, Ptr, Reg
 

@@ -24,7 +24,7 @@ dasm.py              # CLI: parsowanie argumentów, potok kompilacji, zapis wyni
 arch/                # backendy architektur (wybierane przez --arch)
 format/              # formaty wyjściowe (wybierane przez --format)
 lang/                # leksyka, importy, preprocesor, parser, AST, symbole, błędy, mapy źródeł
-bootstrap/           # ładowanie modułów i plików *.toml
+utils/               # ładowanie modułów i plików *.toml, system logów
 tests/               # testy jednostkowe i integracyjne
 examples/            # przykłady (część to notatki projektowe, nie działający kod)
 ```
