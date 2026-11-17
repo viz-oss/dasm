@@ -281,7 +281,7 @@ class ToAst(Transformer):
 
 # --- public API --------------------------------------------------------------
 
-_parser = Lark(GRAMMAR, parser='lalr', propagate_positions=True)
+_parser = Lark(GRAMMAR, parser='lalr')
 
 
 def parse(text: str) -> AST:
@@ -289,12 +289,6 @@ def parse(text: str) -> AST:
         text += '\n'
     try:
         tree = _parser.parse(text)
-        lines = []
-        for child in tree.children:
-            if hasattr(child, 'meta') and not child.meta.empty:
-                lines.append(child.meta.line)
-            else:
-                lines.append(child.line)
     except UnexpectedInput as e:
         expected = getattr(e, 'expected', None) or getattr(e, 'allowed', None) or []
         names = sorted(_TERMINAL_NAMES.get(t, t) for t in expected)
@@ -308,7 +302,7 @@ def parse(text: str) -> AST:
             context=True
         ) from e
     try:
-        return AST(ToAst().transform(tree)), lines
+        return AST(ToAst().transform(tree))
     except VisitError as e:
         if isinstance(e.orig_exc, DasmSyntaxError):
             raise e.orig_exc from None
