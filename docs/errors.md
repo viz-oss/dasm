@@ -29,13 +29,15 @@ DasmSyntaxError(
 |---|---|---|---|---|
 | parser (Lark `UnexpectedInput`) | tak | `True` | `True` | później |
 | parser (`VisitError`, zły literał) | tak (jeśli token ma) | `True` | `False` | później |
-| błędy semantyczne parsera | nie | `False` | `False` | później |
+| resolver symboli (`lang.symbols.resolve`) | nie | `False` | `False` | później |
 | preprocesor (`.set`, config) | zwykle tak | `False` | `False` | później |
 | import (brak pliku, cykl, env) | tak | `False` | `False` | **tak** |
 
-Błędy semantyczne parsera to m.in. `duplicate .start directive`,
-`Label <nazwa> not found` i `Args mismatch in <nazwa>`. Nie mają jeszcze
-numeru linii, więc w CLI pojawiają się z pustymi polami `:line:col:`.
+Błędy resolvera symboli to m.in. `label 'foo' defined twice`,
+`call: unknown label 'foo'`, `missing arguments ['a']`, nieznany parametr oraz
+`unknown symbol 'name'`. Nie mają jeszcze numeru linii ani kolumny. Resolver jest
+osobnym API i nie jest obecnie wywoływany przez CLI, więc te błędy nie pojawiają
+się w zwykłym przebiegu `dasm.py`.
 
 ## Potok relokacji
 
@@ -45,6 +47,7 @@ numeru linii, więc w CLI pojawiają się z pustymi polami `:line:col:`.
 resolved = resolve_with_map(...)          # pliki + SourceMap
 preprocessed = preprocess_with_map(...)   # .set + ColumnMap
 ast = parse(preprocessed.text)
+# Opcjonalnie: ast = lang.symbols.resolve(ast)
 except DasmSyntaxError as e:
     e = source_map.relocate(e, preprocessed.column_maps)
 ```
@@ -52,6 +55,8 @@ except DasmSyntaxError as e:
 - Błędy importu mają już `file`, więc `relocate()` ich nie zmienia.
 - Błędy preprocesora i parsera mają wirtualne numery linii (po wklejeniu
   importów), które `SourceMap` tłumaczy na plik i linię.
+- Błędy resolvera nie zawierają jeszcze pozycji źródłowej, ponieważ AST nie
+  przechowuje lokalizacji etykiet, wywołań ani wskaźników.
 - Kolumny parsera są tłumaczone przez `ColumnMap`, jeśli tekst został
   zmieniony przez `.set` (np. `X` → `1000`).
 
@@ -105,7 +110,7 @@ r0 =
 
 ## Znane ograniczenia
 
-- Błędy semantyczne parsera nie mają pozycji.
+- Błędy resolvera symboli nie mają pozycji, ponieważ AST nie przechowuje jeszcze lokalizacji tych węzłów.
 - Błędy asemblacji (`Undefined label`, `Duplicate label`,
   `Address out of range`) i błędy backendów nie przechodzą przez relokację —
   są to wyjątki Pythona (`ValueError`, `NotImplementedError`, `AssertionError`).

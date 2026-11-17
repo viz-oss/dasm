@@ -72,7 +72,7 @@ podmieniane:
 - komentarze (`;`, `#`, `//`),
 - stringi,
 - etykiety (`X:` to osobny token),
-- nazwy dyrektyw (`.set`, `.text`, ...).
+- nazwy dyrektyw (`.set`, `.raw`, `.start`, ...).
 
 ```asm
 .set X = 1
@@ -80,7 +80,7 @@ podmieniane:
 // X             ← komentarz, bez zmian
 r0 = "X"         ← string, bez zmian
 X:               ← etykieta, bez zmian
-.text "X"        ← string, bez zmian
+.raw("ascii") "X" ← string, bez zmian
 r0 = X           ← podmiana na 1
 ```
 

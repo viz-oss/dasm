@@ -138,4 +138,4 @@ przesuwa adresy etykiet.
 4. Dodaj `EXPORTS = TwojaKlasa`.
 5. Dopisz `nazwa` do `choices` w `--format` w `dasm.py` i testy.
 
-Więcej: [development.md](development.md).
+Więcej: [README dokumentacji](README.md) oraz [AGENTS.md](../AGENTS.md).

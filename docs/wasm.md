@@ -19,14 +19,14 @@ Backend WASM składa się z dwóch modułów:
 |---|---|
 | `rN = <liczba>` | `i32.const <sleb128>` + `local.set <uleb128 N>` |
 | `rN = rM` | `local.get <uleb128 M>` + `local.set <uleb128 N>` |
-| `rN = @<adres>` | `i32.const <adres>` + `i32.load 2 0` + `local.set N` |
-| `@<adres> = rN` | `i32.const <adres>` + `local.get N` + `i32.store 2 0` |
+| `rN = <adres>` | `i32.const <adres>` + `i32.load 2 0` + `local.set N` |
+| `<adres> = rN` | `i32.const <adres>` + `local.get N` + `i32.store 2 0` |
 | `return` | `return` (`0x0F`) |
 | `return <liczba>` | `i32.const <liczba>` + `return` |
 | `.exit` | `return` |
 
-- `@<adres>` musi być literałem (`Ptr(Int(...))`), nie etykietą; adres musi
-  być nieujemny. Etykieta daje `NotImplementedError`.
+- `<adres>` musi być literałem liczbowym (`Ptr(Int(...))`), nie etykietą; adres
+  musi być nieujemny. Etykieta daje `NotImplementedError`.
 - `call` i `jmp` dają `NotImplementedError` (brak indeksów funkcji i skoków).
 - `memarg` jest stały: `align = 2`, `offset = 0`.
 
@@ -113,7 +113,7 @@ arch.assembly([Mov(Reg(0), Int(1))])
 
 Code section: `01 08 01 01 7F 41 01 21 00 0B` (jeden lokal `i32`, potem ciało).
 
-`@100 = r0`:
+`100 = r0`:
 
 ```python
 arch.assembly([Mov(Ptr(Int(100)), Reg(0))])

@@ -13,6 +13,7 @@ DASM is a multi-architecture assembler with a small high-level language. Its com
   -> import resolution and source mapping
   -> preprocessing (.set and TOML constants)
   -> parsing into an AST
+  -> optional semantic resolution with lang.symbols.resolve()
   -> architecture backend assembly
   -> output-format encoding
   -> output file
@@ -23,7 +24,7 @@ The project is a Python script-based project. It does not currently require inst
 ## Repository layout
 
 - `dasm.py`: command-line entry point and compilation pipeline.
-- `lang/`: lexical analysis, imports, preprocessing, parsing, AST types, errors, and source maps.
+- `lang/`: lexical analysis, imports, preprocessing, parsing, AST types, symbol resolution, errors, and source maps.
 - `arch/`: architecture backends selected with `--arch`.
 - `format/`: output format backends selected with `--format`.
 - `bootstrap/`: dynamic module loading and TOML settings loading.
@@ -100,7 +101,7 @@ Keep output behavior compatible unless the task explicitly changes it:
 - Output is written in binary mode.
 - The selected format supplies the output extension.
 - `-o name` receives the format extension when it is missing.
-- Syntax and preprocessing failures return a non-zero status and include source location information.
+- Import, syntax, and preprocessing failures return a non-zero status and include source location information. Semantic resolution is a separate library step and is not currently called by the CLI.
 
 ## Python style
 
@@ -121,7 +122,7 @@ Do not commit generated or local-development artifacts, including:
 - `__pycache__/`
 - `.pytest_cache/`
 - virtual environments
-- generated binary output such as `.bin`, `.elf`, `.hex`, `.o`, and `.prg`
+- generated binary output such as `.bin`, `.elf`, `.hex`, `.o`, `.prg`, and `.wasm`
 - local configuration such as `local.toml`
 
 Use temporary directories for test outputs whenever possible.

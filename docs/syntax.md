@@ -41,8 +41,9 @@ pętla:
 
 Nazwa etykiety może zawierać litery Unicode, cyfry, `_` i emoji, ale nie może
 zaczynać się od cyfry. Etykieta z dwukropkiem to osobny token, więc nie jest
-podmieniana przez preprocesor. Duplikat etykiety jest błędem na etapie
-asemblacji (`Duplicate label: ...`).
+podmieniana przez preprocesor. Duplikaty są odrzucane przez walidację symboli
+(`label 'nazwa' defined twice`) albo przez backend podczas bezpośredniego
+wywołania `Architecture.assembly()` (`Duplicate label: nazwa`).
 
 ## Przypisania
 
@@ -77,13 +78,13 @@ dodaj(a: r0, b: r1):
     return
 ```
 
-- `a: r0` oznacza, że argument przekazany jako pierwszy trafi do `r0`.
-- Nazwy parametrów są dokumentacyjne: **o przypisaniu rejestru decyduje
-  kolejność argumentów**, nie ich nazwy.
-- Liczba argumentów musi zgadzać się z liczbą parametrów
-  (`Args mismatch in <label>`).
-- Wywołanie musi wskazywać istniejącą etykietę (`Label <name> not found`).
-  Etykieta może być zdefiniowana później.
+- `a: r0` oznacza, że argument nazwany `a` zostanie powiązany z `r0`.
+- Argumenty są nazwane, więc ich kolejność w wywołaniu nie ma znaczenia.
+- `parse()` tworzy `Arg` z `reg=None`; `lang.symbols.resolve()` uzupełnia rejestr
+  na podstawie definicji etykiety.
+- Resolver zgłasza brakujące argumenty (`missing arguments [...]`), nieznane
+  parametry, duplikaty argumentów i nieznane etykiety (`call: unknown label ...`).
+- Etykieta może być zdefiniowana przed lub po wywołaniu.
 
 Wywołania:
 
@@ -158,5 +159,9 @@ Stringi są w podwójnych lub pojedynczych cudzysłowach i obsługują escape'y 
 - `return`, `rN` i nazwy dyrektyw są zarezerwowane; `return_value` jest już
   poprawną nazwą.
 - Etykiety i nazwy są wrażliwe na wielkość liter (`Foo` ≠ `foo`).
-- Semantyczne błędy parsera (duplikat `.start`, brak etykiety wywołania,
-  niezgodna liczba argumentów) nie mają jeszcze numeru linii i kolumny.
+- `parse()` odpowiada za składnię; walidacja symboli jest osobnym krokiem przez
+  `lang.symbols.resolve(ast)` i nie jest obecnie wywoływana przez CLI.
+- Błędy resolvera (duplikaty etykiet, brak etykiety, brakujące argumenty,
+  nieznane symbole) nie mają jeszcze numeru linii ani kolumny.
+- `.start` jest sprawdzany przez parser tylko pod kątem formy dyrektywy; kontrolę,
+  czy etykieta istnieje, wykonuje resolver.

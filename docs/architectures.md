@@ -34,7 +34,6 @@ zaimplementowane (mogą na razie rzucać `NotImplementedError`). Bazowa
    - `Mov` → `mov()`,
    - `Call` → `call(instr, offset=len(output))`,
    - `Raw` → `raw()` (domyślnie jeden bajt na wartość),
-   - `Text` → `text()` (domyślnie nic nie emituje),
    - `Return` → `ret()`,
    - `Exit` → `exit()`,
 4. `apply_relocations()` uzupełnia adresy etykiet i sprawdza zakres,
@@ -55,7 +54,7 @@ zgłasza `Undefined label: ...` oraz `Address out of range for ...`.
 - `mov`:
   - `rN = <liczba 0..0xFFFF>` → jedna instrukcja `MOVZ` (32-bitowe słowo),
   - `rN = rM` → `_orr`, na razie `NotImplementedError`,
-  - `rN = @...`, `@... = rN` → `NotImplementedError`.
+  - `rN = <adres>`, `<adres> = rN` → `NotImplementedError`.
 - `_movz(rd, imm16, hw=0, x=True)` buduje słowo `MOVZ`; waliduje `rd` w
   `0..31`, `imm16` w `0..0xFFFF`, `hw` w `0..3`.
 - `call`, `ret`, `exit`, `jmp` → `NotImplementedError`.
@@ -68,10 +67,12 @@ Rejestry wirtualne: `r0` = A, `r1` = X, `r2` = Y.
 - `word_size = 1`, `endian = 'little'`, `entry_jump_size = 3` (`JMP $xxxx`).
 - `mov`:
   - `r0/r1/r2 = <0..255>` → `LDA/LDX/LDY #imm` (`0xA9`, `0xA2`, `0xA0`),
-  - `@<0..65535> = r0/r1/r2` → `STA/STX/STY absolute` (`0x8D`, `0x8E`, `0x8C`),
+  - `<0..65535> = r0/r1/r2` → `STA/STX/STY absolute` (`0x8D`, `0x8E`, `0x8C`),
   - pozostałe kombinacje → `NotImplementedError`.
 - `call`: argumenty są emitowane przez `mov()` do rejestrów z `Arg.reg`,
-  następnie `JSR` (`0x20`) z 2-bajtową relokacją adresu. Obecnie działają
+  następnie `JSR` (`0x20`) z 2-bajtową relokacją adresu. `Arg.reg` musi być
+  wcześniej uzupełnione przez `lang.symbols.resolve()`; sam parser zostawia je
+  jako `None`. Obecnie działają
   argumenty będące liczbami; rejestry i wskaźniki wymagają trybów `mov`,
   których jeszcze nie ma.
 - `ret` i `exit` → `RTS` (`0x60`).
@@ -110,4 +111,4 @@ nie dotyczą tego backendu i zgłaszają `NotImplementedError`.
 5. Dodaj `nazwa` do `choices` w `--arch` w `dasm.py`.
 6. Dopisz testy do `tests/test_arch_nazwa.py`.
 
-Więcej: [development.md](development.md).
+Więcej: [README dokumentacji](README.md) oraz [AGENTS.md](../AGENTS.md).

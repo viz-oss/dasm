@@ -16,7 +16,6 @@ architektur oraz formatów wyjściowych.
 | [formats.md](formats.md) | interfejs formatu i opis formatów wyjściowych |
 | [wasm.md](wasm.md) | szczegóły backendu i formatu WebAssembly |
 | [errors.md](errors.md) | `DasmSyntaxError`, mapy źródeł, relokacja linii i kolumn |
-| [development.md](development.md) | struktura projektu, dodawanie architektur i formatów, testy |
 
 ## Struktura kodu
 
@@ -24,7 +23,7 @@ architektur oraz formatów wyjściowych.
 dasm.py              # CLI: parsowanie argumentów, potok kompilacji, zapis wyniku
 arch/                # backendy architektur (wybierane przez --arch)
 format/              # formaty wyjściowe (wybierane przez --format)
-lang/                # leksyka, importy, preprocesor, parser, AST, błędy, mapy źródeł
+lang/                # leksyka, importy, preprocesor, parser, AST, symbole, błędy, mapy źródeł
 bootstrap/           # ładowanie modułów i plików *.toml
 tests/               # testy jednostkowe i integracyjne
 examples/            # przykłady (część to notatki projektowe, nie działający kod)
@@ -37,10 +36,14 @@ examples/            # przykłady (część to notatki projektowe, nie działaj�
   → resolve_with_map()    # .import: wklejenie plików + SourceMap
   → preprocess_with_map() # .set i stałe z TOML + ColumnMap
   → parse()               # AST
+  → lang.symbols.resolve() # opcjonalna walidacja semantyczna
   → Architecture.assembly()
   → Format.output()
   → plik wyjściowy
 ```
+
+`resolve()` nie jest jeszcze wywoływane przez `dasm.py`; służy jako osobny krok
+API do walidacji symboli i sygnatur wywołań.
 
 ## Stan implementacji
 

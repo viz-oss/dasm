@@ -107,12 +107,14 @@ r2 = message
 0xD020 = r0
 
 message:
-    .text "Hello\\n"
+    .raw("ascii") "Hello\\n"
 ```
 
 Labels may contain Unicode characters, digits, underscores, and emoji, provided they do not begin with a digit. The language supports `;`, `#`, and `//` line comments.
 
 The exact instructions and addressing modes available depend on the selected architecture backend. Unsupported operations are reported explicitly rather than silently accepted.
+
+Parsing and semantic validation are separate steps. `parse()` creates the AST; `lang.symbols.resolve()` can then validate labels, pointer symbols, call signatures, and fill `Arg.reg`. The current CLI invokes the parser but does not yet invoke the resolver.
 
 ## Configuration
 
@@ -156,6 +158,7 @@ The compiler processes a source file in the following order:
   -> import resolution and source mapping
   -> preprocessing (.set and TOML constants)
   -> parsing into an AST
+  -> optional semantic resolution (lang.symbols.resolve)
   -> architecture backend assembly
   -> output-format encoding
   -> output file
@@ -169,7 +172,7 @@ Source maps preserve the original file, line, and column information through imp
 dasm.py       # Command-line entry point and compilation pipeline
 arch/         # Architecture backends selected with --arch
 format/       # Output-format backends selected with --format
-lang/         # Lexer, imports, preprocessor, parser, AST, errors, and source maps
+lang/         # Lexer, imports, preprocessor, parser, AST, symbols, errors, and source maps
 bootstrap/    # Dynamic module loading and TOML settings
 tests/        # Unit and integration tests
 examples/     # Example and exploratory .dasm source files
@@ -232,7 +235,7 @@ The following features are not complete or are intentionally outside the current
 - local labels, sections, macros, and conditional compilation;
 - full support for all addressing modes;
 - complete call and return-value semantics across backends;
-- complete multi-byte handling for every `.bN` directive;
+- complete encoding of every `.raw` variant in all backends;
 - production-ready `x86`, `elf`, and `exe` backends.
 
 These limitations are part of the current project status and may change as the compiler evolves.
