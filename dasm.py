@@ -13,6 +13,7 @@ from lang.symbols import resolve
 from lang.abstract import Start
 from lang.exceptions import DasmSyntaxError
 import utils.settings
+import utils.log
 from utils.modules import load_module
 
 
@@ -69,7 +70,17 @@ def main(argv = None):
         action='store_true',
         help='debugging mode for the output file'
     )
+    parser.add_argument(
+        '-l', '--log',
+        nargs='?',
+        const='*',
+        default=None,
+        help='log all modules without filter or module1+module2.name',
+    )
     args = parser.parse_args(argv)
+    
+    # Log system
+    logger = utils.log.setup(args.log)
     
     # Header
     print(f"dasm v{__version__}")
@@ -103,7 +114,7 @@ def main(argv = None):
     source_text = source_path.read_text(encoding='utf-8')
 
     # Preprocess/Parse
-    print("Parsing...", end='')
+    print('Parsing...', end='')
     source_map = None
     column_maps = None
     try:
@@ -126,10 +137,10 @@ def main(argv = None):
         print('\n')
         print(f"{error_file}:{line}:{col}: syntax error\n{e}", file=sys.stderr)
         return 1
-    print("OK")
+    print('OK')
 
     # Load architecture
-    print("Architecture...", end='')
+    print('Architecture...', end='')
     arch = load_module('arch', options['arch'])
     print(options['arch'])
 
@@ -141,22 +152,22 @@ def main(argv = None):
     emit_entry_jump = start is not None and format.entry_jump
 
     # Assembly
-    print("Assembly...", end='')
+    print('Assembly...', end='')
     words = arch.assembly(
         ast,
         origin=format.origin,
         start=start,
         entry_jump=emit_entry_jump,
     )
-    print("OK")
+    print('OK')
 
     # Format output
-    print("Format...", end='')
+    print('Format...', end='')
     output = format.output(words, entry=arch.entry)
     print(options['format'])
 
     # Save output file
-    print("Output...", end='')
+    print('Output...', end='')
     output_name = options['output'] if options['output'] else source_path.name.replace('.dasm', '.' + format.ext)
     if not output_name.endswith('.' + format.ext): output_name += '.' + format.ext
     output_path = Path(output_name)

@@ -5,11 +5,12 @@ Works on tokens, not on raw text, so a constant `art` is never substituted
 inside `start:`, `.art`, a string literal or a comment.
 """
 
-import ast, json, re, unicodedata
+import ast, json, re, unicodedata, logging
 from dataclasses import dataclass
 from .exceptions import DasmSyntaxError
 from .lexical import expand, IDENT
 from .sourcemap import ColumnMap, ColumnSegment
+from utils.log import red, green
 
 
 _TOKEN_RE = re.compile(expand(r'''
@@ -123,6 +124,7 @@ def preprocess_with_map(text: str, defines: dict[str, Value] | None = None) -> P
     defines: constants from the project config; visible from the first line
     and not overridable by .set. A constant must be defined before use.
     """
+    logger = logging.getLogger(__name__)
     text = unicodedata.normalize('NFC', text)
     defines = {unicodedata.normalize('NFC', k): v for k, v in (defines or {}).items()}
     text = _mask_block_comments(text)
@@ -163,7 +165,13 @@ def preprocess_with_map(text: str, defines: dict[str, Value] | None = None) -> P
                 parts.append(value)
                 out_col += len(value)
 
-        out.append(''.join(parts))
+        result = ''.join(parts)
+        out.append(result)
+        if (line == result):
+            logger.info(f"{lineno}: {line}")
+        else:
+            logger.info(red(f"{lineno}: {line}"))
+            logger.info(green(f"{lineno}: {result}"))
         column_maps.append(ColumnMap(segments))
 
     return PreprocessedSource('\n'.join(out), column_maps)
