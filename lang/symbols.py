@@ -15,8 +15,9 @@ Adding `pos` to Label, Call and Ptr is the next step for better messages.
 """
 
 from __future__ import annotations
-
 from dataclasses import dataclass, replace
+import logging
+logger = logging.getLogger(__name__)
 
 from .abstract import Arg, Call, Label, Mov, Ptr, Start
 from .exceptions import DasmSyntaxError
@@ -53,12 +54,12 @@ def collect(ast: AST, externs: frozenset[str] | set[str] = frozenset()) -> Symbo
             if node.name in labels:
                 raise DasmSyntaxError(message=f"label '{node.name}' defined twice")
             _check_signature(node)
+            logger.info(f"Collect '{node.name}' = {node}")
             labels[node.name] = node
 
     clash = labels.keys() & set(externs)
     if clash:
-        raise DasmSyntaxError(
-            message=f"extern symbol defined in this program: {sorted(clash)}")
+        raise DasmSyntaxError(message=f"extern symbol defined in this program: {sorted(clash)}")
     return SymbolTable(labels, frozenset(externs))
 
 
@@ -67,6 +68,7 @@ def collect(ast: AST, externs: frozenset[str] | set[str] = frozenset()) -> Symbo
 def _check_symbol(table: SymbolTable, name: str, where: str) -> None:
     if name not in table.labels and name not in table.externs:
         raise DasmSyntaxError(message=f"{where}: unknown symbol '{name}'")
+    logger.info(f"Check symbol {name} @ {where}")
 
 
 def _check_operand(table: SymbolTable, operand, where: str) -> None:
@@ -99,20 +101,18 @@ def _resolve_call(table: SymbolTable, call: Call, require_all_args: bool) -> Cal
                 message=f"call to '{call.target}': duplicate argument '{a.name}'")
         seen.add(a.name)
         _check_operand(table, a.value, f"call to '{call.target}', argument '{a.name}'")
+        logger.info(f"Resolve call {a} = {params[a.name].reg}")
         args.append(replace(a, reg=params[a.name].reg))
 
     if require_all_args:
         missing = [n for n in params if n not in seen]
         if missing:
-            raise DasmSyntaxError(
-                message=f"call to '{call.target}': missing arguments {missing}")
+            raise DasmSyntaxError(message=f"call to '{call.target}': missing arguments {missing}")
 
     return replace(call, args=tuple(args))
 
 
-def resolve(ast: AST,
-            externs: frozenset[str] | set[str] = frozenset(),
-            require_all_args: bool = True) -> AST:
+def resolve(ast: AST, externs: frozenset[str] | set[str] = frozenset(), require_all_args: bool = True) -> AST:
     """Validate names and return a new AST with Arg.reg filled in.
 
     externs:          symbols defined elsewhere (linker resolves them).
@@ -131,8 +131,7 @@ def resolve(ast: AST,
             _check_operand(table, node.fr, "assignment source")
         elif isinstance(node, Start):
             if node.target not in table.labels:
-                raise DasmSyntaxError(
-                    message=f".start: unknown label '{node.target}'")
+                raise DasmSyntaxError(message=f".start: unknown label '{node.target}'")
         out.append(node)
 
     return AST(out)
