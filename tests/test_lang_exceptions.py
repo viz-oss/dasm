@@ -3,16 +3,9 @@
 from lang.exceptions import DasmSyntaxError
 
 
-def test_annotations_describe_error_fields():
-    assert DasmSyntaxError.__annotations__ == {
-        'line': int | None,
-        'col': int | None,
-        'expected': list[str] | None,
-        'message': str,
-        'file': str | None,
-        'map_columns': bool,
-        'context': bool,
-    }
+def test_location_includes_file_and_position():
+    error = DasmSyntaxError(line=3, col=7, file='source.dasm')
+    assert error.location() == 'source.dasm:3:7'
 
 
 def test_defaults():

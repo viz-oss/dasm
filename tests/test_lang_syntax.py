@@ -49,9 +49,9 @@ def test_call():
             Param('buf', Reg(2)))
         ),
         Call('foo2', (
-            Arg('color', Int(1), reg=Reg(n=0)),
-            Arg('size', Int(2), reg=Reg(n=1)),
-            Arg('buf', Int(3), reg=Reg(n=2)))
+            Arg('color', Int(1)),
+            Arg('size', Int(2)),
+            Arg('buf', Int(3)))
         )
     ]
 
@@ -127,18 +127,18 @@ def test_arg_name_becomes_pointer():
 
 
 def test_invalid_string_literal():
-    with pytest.raises(DasmSyntaxError, match='invalid literal'):
+    with pytest.raises(DasmSyntaxError, match='invalid string literal'):
         parse('.text "\\x"\n')
 
 
 def test_undefined_call_label():
-    with pytest.raises(DasmSyntaxError, match='Label missing not found'):
-        parse('missing()\n')
+    with pytest.raises(DasmSyntaxError, match="call: unknown label 'missing'"):
+        resolve(parse('missing()\n'))
 
 
 def test_call_args_mismatch():
-    with pytest.raises(DasmSyntaxError, match='Args mismatch in f'):
-        parse('f(a: r0):\nf()\n')
+    with pytest.raises(DasmSyntaxError, match="missing arguments \\['a'\\]"):
+        resolve(parse('f(a: r0):\nf()\n'))
 
 
 def test_ast_filter():
