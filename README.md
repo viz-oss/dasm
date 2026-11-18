@@ -20,6 +20,7 @@ DASM follows these principles:
 ## Current status
 
 DASM is an active, partially implemented project. The language, compiler pipeline, and extension interfaces are usable, but architecture support is intentionally incomplete.
+## Platforms
 
 ### Architecture backends
 
@@ -44,6 +45,60 @@ DASM is an active, partially implemented project. The language, compiler pipelin
 | `exe` | Placeholder. |
 
 On macOS, the default target is `arm64` with `macho`. Linux defaults to `x86` with `elf`, and Windows defaults to `x86` with `exe`. Because those Linux and Windows backends are placeholders, use an explicit supported target such as `--arch wasm --format wasm` or `--arch mos6502 --format prg` when testing on those platforms.
+## Language design
+
+DASM source files use the `.dasm` extension. A program is made up of labels, assignments, calls, directives, and returns. Indentation is optional.
+
+### Registers and MOV
+
+Registers are virtual. An architecture backend maps them to physical registers, WebAssembly locals, or another target-specific representation. There is no limit on the number of registers – if physical registers run out, the stack or RAM will be used.
+
+```asm
+; move the value 1 into the register 0 (e.g. rax, X0)
+r0 = 1
+```
+
+Assignments can use constants, registers, labels, or addresses:
+
+```asm
+; move the hexadecimal value 0x20 into the register 1 (e.g. rbx, X1)
+r1 = 0x20
+; load the address of the label 'message' into register 2
+r2 = message
+; load the value of the first element located at the address of the label 'message' into register 3
+r3 = message[0]
+; load the value of the element at the index specified in register 5, located at the address of the label 'message' into register 4
+r4 = message[r5]
+
+message:
+    .raw("ascii") "Hello\n"
+```
+
+### Labels
+
+Labels may contain Unicode characters, digits, underscores, and emoji, provided they do not begin with a digit.
+
+### Raw machine code or data
+
+```
+.raw 0x1
+.raw 0x0 * 1024
+.raw 0x1, 0x2, 0x3
+.raw(8) 0x1
+.raw(16) 0x1
+.raw(32) 0x1
+.raw(64) 0x1
+.raw('ascii') 'Hello world!', 0
+.raw('utf-8') 'Witaj świecie!', 0
+.raw('utf-16') 'Full unicode string!', 0
+```
+### Comments
+
+The language supports `;`, `#`, and `//` line comments, also `/* */`, `""" """` block comments.
+ 
+### Addressing
+
+The exact instructions and addressing modes available depend on the selected architecture backend. Unsupported operations are reported explicitly rather than silently accepted.
 
 ## Requirements
 
@@ -95,39 +150,6 @@ program.dasm -> program.prg
 ```
 
 When `-o name` is used, the appropriate extension is added if it is missing.
-
-## A small language
-
-DASM source files use the `.dasm` extension. A program is made up of labels, assignments, calls, directives, and returns. Indentation is optional.
-
-Registers are virtual. An architecture backend maps them to physical registers, WebAssembly locals, or another target-specific representation:
-
-```asm
-.start main
-
-main:
-    r0 = 1
-    r1 = r0
-    return
-```
-
-Assignments can use constants, registers, labels, or addresses:
-
-```asm
-r0 = 42
-r1 = 0x20
-r2 = message
-0xD020 = r0
-
-message:
-    .raw("ascii") "Hello\\n"
-```
-
-Labels may contain Unicode characters, digits, underscores, and emoji, provided they do not begin with a digit. The language supports `;`, `#`, and `//` line comments.
-
-The exact instructions and addressing modes available depend on the selected architecture backend. Unsupported operations are reported explicitly rather than silently accepted.
-
-Parsing and semantic validation are separate steps. `parse()` creates the AST; `lang.symbols.resolve()` then validates labels, pointer symbols, call signatures, and fills `Arg.reg` before assembly. The CLI runs both steps.
 
 ## Configuration
 
