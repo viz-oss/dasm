@@ -25,7 +25,7 @@ def test_label():
         parse('1abc:')
 
     assert e.value.line == 1
-    assert e.value.col == 2
+    assert e.value.col == 1
 
 
 def test_call():

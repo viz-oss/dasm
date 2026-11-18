@@ -130,6 +130,7 @@ def test_context_shows_original_imported_line(tmp_path):
 
     assert Path(error.file) == lib.resolve()
     assert error.line == 2
-    assert error.col == 5
+    assert error.col == 3
     assert "r = VIC_RED" in error.message
     assert "r = 2" not in error.message
+    assert error.message.splitlines()[-1] == "  ^"
