@@ -78,6 +78,30 @@ message:
 
 Labels may contain Unicode characters, digits, underscores, and emoji, provided they do not begin with a digit.
 
+```
+label_1:
+  ..code..
+```
+
+### Calls
+
+There is no difference between a label and a function—they all serve the same purpose.
+
+```x86asm
+; Define a label
+label_1:
+  ;..code..
+; Call a label
+label_1()
+
+; Define a function with params assigned to a registers:
+label_2(color: r0, background: r1):
+  ;..code..
+; Call a function with params
+label_2(color=0x12, background=0x15)
+  
+```
+
 ### Raw machine code or data
 
 ```
@@ -92,6 +116,10 @@ Labels may contain Unicode characters, digits, underscores, and emoji, provided 
 .raw('utf-8') 'Witaj świecie!', 0
 .raw('utf-16') 'Full unicode string!', 0
 ```
+
+### Identation
+
+There is no code indentation; it is used solely for readability.
 ### Comments
 
 The language supports `;`, `#`, and `//` line comments, also `/* */`, `""" """` block comments.
