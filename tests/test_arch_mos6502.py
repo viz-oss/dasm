@@ -3,7 +3,7 @@
 import pytest
 
 from arch.mos6502 import MOSArchitecture
-from lang.abstract import Arg, Raw, Call, Exit, Int, Label, Mov, Ptr, Reg, Return, Start
+from lang.abstract import Arg, Raw, Call, Exit, Int, Label, Mov, Ptr, Mem, Reg, Return, Start
 
 
 def test_call_backward_label():
@@ -138,13 +138,13 @@ def test_register_immediates():
 def test_absolute_stores():
     arch = MOSArchitecture()
 
-    assert arch.assembly([Mov(to=Ptr(Int(0x1234)), fr=Reg(0))]) == [
+    assert arch.assembly([Mov(to=Mem(Int(0x1234)), fr=Reg(0))]) == [
         0x8D, 0x34, 0x12,
     ]
-    assert arch.assembly([Mov(to=Ptr(Int(0x1234)), fr=Reg(1))]) == [
+    assert arch.assembly([Mov(to=Mem(Int(0x1234)), fr=Reg(1))]) == [
         0x8E, 0x34, 0x12,
     ]
-    assert arch.assembly([Mov(to=Ptr(Int(0x1234)), fr=Reg(2))]) == [
+    assert arch.assembly([Mov(to=Mem(Int(0x1234)), fr=Reg(2))]) == [
         0x8C, 0x34, 0x12,
     ]
 
@@ -160,7 +160,7 @@ def test_absolute_address_out_of_range():
     arch = MOSArchitecture()
 
     with pytest.raises(AssertionError):
-        arch.assembly([Mov(to=Ptr(Int(0x10000)), fr=Reg(0))])
+        arch.assembly([Mov(to=Mem(Int(0x10000)), fr=Reg(0))])
 
 
 @pytest.mark.parametrize(

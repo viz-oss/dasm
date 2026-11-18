@@ -15,7 +15,7 @@ from lark import Lark, Transformer
 from lark.exceptions import UnexpectedInput, VisitError
 
 from .abstract import (
-    Start, Reg, Int, Mov, Label, Param, Raw, Ptr, Arg, Call, Return, Exit,
+    Start, Reg, Int, Mov, Label, Param, Raw, Ptr, Mem, Arg, Call, Return, Exit,
 )
 from .exceptions import DasmSyntaxError
 from .lexical import expand
@@ -34,8 +34,11 @@ start: (line? _NL)*
      | call
      | return_stmt
 
-statement: REG "=" (REG | NUMBER | NAME)
-         | (NUMBER | NAME) "=" REG
+statement: REG "=" (REG | NUMBER | NAME | mem)
+         | mem "=" (REG | mem)
+
+mem: "[" (REG | NUMBER) "]"               -> mem_abs
+   | (NAME | REG) "[" (REG | NUMBER) "]"  -> mem_idx
 
 label_def: NAME "(" params? ")" ":"
 params: param ("," param)*
@@ -43,7 +46,7 @@ param: NAME ":" REG
 
 call: (REG "=")? NAME "(" args? ")"
 args: arg ("," arg)*
-arg: NAME "=" (REG | NUMBER | NAME)
+arg: NAME "=" (REG | NUMBER | NAME | mem)
 
 raw_stmt: RAW type_spec? bytes_arg repeat?
 type_spec: "(" (NUMBER | STRING) ")"
@@ -168,11 +171,16 @@ class ToAst(Transformer):
 
     # --- statements --------------------------------------------------------
 
+    def mem_abs(self, c):
+        return Mem(c[0])                     # Reg or Int, index = Int(0)
+
+    def mem_idx(self, c):
+        name, index = c
+        return Mem(name, index)
+
     def statement(self, c):
         to, fr = c
-        if not isinstance(to, Reg):          # number or name on the left -> memory
-            to = Ptr(to)
-        if isinstance(fr, str):              # name on the right -> symbol
+        if isinstance(fr, str):              # bare name on the right -> address of symbol
             fr = Ptr(fr)
         return Mov(to, fr)
 

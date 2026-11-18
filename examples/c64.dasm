@@ -10,10 +10,3 @@
   vic_frame_color(color = VIC_GREEN)
 
 .exit
-
-/*
-r0 = label ; adres
-r0 = label() ; call
-r0 = label[0] ; element
-r0 = label[r1] ; element z numerem w rejestrze
-*/

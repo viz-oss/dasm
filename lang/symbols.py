@@ -19,7 +19,7 @@ from dataclasses import dataclass, replace
 import logging
 logger = logging.getLogger(__name__)
 
-from .abstract import Arg, Call, Label, Mov, Ptr, Start
+from .abstract import Arg, Call, Label, Mov, Ptr, Mem, Start
 from .exceptions import DasmSyntaxError
 from .syntax import AST
 
@@ -71,10 +71,11 @@ def _check_symbol(table: SymbolTable, name: str, where: str) -> None:
     logger.info(f"Check symbol {name} @ {where}")
 
 
-def _check_operand(table: SymbolTable, operand, where: str) -> None:
-    # Ptr with an Int target is a literal address: nothing to resolve
-    if isinstance(operand, Ptr) and isinstance(operand.target, str):
+def _check_operand(table, operand, where):
+    if isinstance(operand, Ptr):
         _check_symbol(table, operand.target, where)
+    elif isinstance(operand, Mem) and isinstance(operand.base, str):
+        _check_symbol(table, operand.base, where)
 
 
 def _resolve_call(table: SymbolTable, call: Call, require_all_args: bool) -> Call:

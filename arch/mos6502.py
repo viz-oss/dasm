@@ -80,7 +80,7 @@ class MOSArchitecture(Architecture):
                     case 1: return self._ldx_immediate(instr)
                     case 2: return self._ldy_immediate(instr)
                 raise NotImplementedError(instr)
-        elif instr.to_ptr():
+        elif instr.to_mem():
             if instr.fr_reg():
                 match instr.fr.n:
                     case 0: return self._sta_absolute(instr)
@@ -176,7 +176,7 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _sta_absolute(self, instr) -> list[int]:
-        return [OP_STA_ABSOLUTE, *self._absolute16(instr.to.target.value)]
+        return [OP_STA_ABSOLUTE, *self._absolute16(instr.to.base.value)]
 
     def _sta_absolute_x(self, instr) -> list[int]:
         raise NotImplementedError(instr)
@@ -199,7 +199,7 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _stx_absolute(self, instr) -> list[int]:
-        return [OP_STX_ABSOLUTE, *self._absolute16(instr.to.target.value)]
+        return [OP_STX_ABSOLUTE, *self._absolute16(instr.to.base.value)]
 
     # STY
 
@@ -210,7 +210,7 @@ class MOSArchitecture(Architecture):
         raise NotImplementedError(instr)
 
     def _sty_absolute(self, instr) -> list[int]:
-        return [OP_STY_ABSOLUTE, *self._absolute16(instr.to.target.value)]
+        return [OP_STY_ABSOLUTE, *self._absolute16(instr.to.base.value)]
 
     # CALL
 

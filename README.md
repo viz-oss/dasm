@@ -10,7 +10,7 @@ The project is intentionally focused on a small and understandable core. It is s
 DASM follows these principles:
 
 1. **Simplicity and minimalism** — the language should remain small enough to understand.
-2. **Unambiguous behavior** — source code should have one clear interpretation.
+2. Unambiguous behavior — the source code should have a single, clear interpretation, free from language-specific exceptions or pitfalls.
 3. **One straightforward way to solve a problem** — avoid unnecessary alternatives and special cases.
 4. **Portability** — keep the language and compiler architecture usable across platforms and targets.
 5. **Readability and speed** — clear, efficient code is more valuable than trying to prevent every possible mistake. Just don’t make any mistakes.
@@ -58,22 +58,6 @@ Registers are virtual. An architecture backend maps them to physical registers, 
 r0 = 1
 ```
 
-Assignments can use constants, registers, labels, or addresses:
-
-```asm
-; move the hexadecimal value 0x20 into the register 1 (e.g. rbx, X1)
-r1 = 0x20
-; load the address of the label 'message' into register 2
-r2 = message
-; load the value of the first element located at the address of the label 'message' into register 3
-r3 = message[0]
-; load the value of the element at the index specified in register 5, located at the address of the label 'message' into register 4
-r4 = message[r5]
-
-message:
-    .raw("ascii") "Hello\n"
-```
-
 ### Labels
 
 Labels may contain Unicode characters, digits, underscores, and emoji, provided they do not begin with a digit.
@@ -102,6 +86,53 @@ label_2(color=0x12, background=0x15)
   
 ```
 
+### Addressing
+
+Memory indices operate on words, which depend on the processor architecture.
+
+```
+; Get label's address
+r0 = label
+
+; Take the first element at the label's address
+r0 = label[0]
+
+; Take the element with the number found in register r1x
+r0 = label[r1]
+```
+
+On retro and embedded systems, direct references to memory addresses are common practice.
+
+```
+; Retrieving a value directly from a memory cell at the specified address
+r0 = [0x1234]
+
+; Sending a value into a memory cell at an address
+[0x1234] = r0
+
+; Direct memory copying is also possible
+[0x1234] = [0x5678]
+[r0] = [r1]
+```
+
+### Compiler directives
+
+Commands that begin with a dot are compiler directives—not instructions for the processor. They are resolved during the initial preprocessing stage.
+
+```
+; Specifies the label from which the program should start (it also serves to make the label globally visible, if required by the linker)
+.start name
+
+; Returning to the operating system
+.exit
+
+; Defines a constant
+.set NAME = 1
+
+; Adds another file ('.dasm' is optional and checking to ensure it is not a duplicate)
+.import 'path/to/file.dasm'
+```
+
 ### Raw machine code or data
 
 ```
@@ -124,10 +155,6 @@ There is no code indentation; it is used solely for readability.
 
 The language supports `;`, `#`, and `//` line comments, also `/* */`, `""" """` block comments.
  
-### Addressing
-
-The exact instructions and addressing modes available depend on the selected architecture backend. Unsupported operations are reported explicitly rather than silently accepted.
-
 ## Requirements
 
 - Python 3.14

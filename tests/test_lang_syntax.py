@@ -1,7 +1,7 @@
 """Unit tests for parsing syntax"""
 
 import pytest
-from lang.abstract import Start, Label, Mov, Reg, Ptr, Arg, Call, Int, Param, Raw, Exit, Return
+from lang.abstract import Start, Label, Mov, Reg, Ptr, Mem, Arg, Call, Int, Param, Raw, Exit, Return
 from lang.syntax import AST, parse, DasmSyntaxError
 from lang.symbols import resolve
 
@@ -97,10 +97,6 @@ def test_unicode():
     ]
 
 
-def test_statement_to_memory():
-    assert parse('foo = r0\n') == [Mov(Ptr('foo'), Reg(0))]
-
-
 def test_exit_directive():
     assert parse('.exit\n') == [Exit()]
 
@@ -178,4 +174,20 @@ def test_resolve_named_args_any_order():
     src = "foo(a: r0, b: r1):\nreturn\nfoo(b = 1, a = 2)\n"
     out = resolve(parse(src))
     call = out.filter(typeof=Call)[0]
+
     assert call.args[0].reg == Reg(1) and call.args[1].reg == Reg(0)
+
+
+def test_memory_access():
+    ast = parse("[0x1234] = r0\nr0 = [0x1234]\n[r1] = r0\nr0 = [r1]\nr0 = label[0]\nr0 = label[r1]\nlabel[2] = r0\nr0 = label")
+
+    assert ast ==  [
+        Mov(Mem(Int(4660)), Reg(0)),
+        Mov(Reg(0), Mem(Int(4660))),
+        Mov(Mem(Reg(1)), Reg(0)),
+        Mov(Reg(0), Mem(Reg(1))),
+        Mov(Reg(0), Mem('label', Int(0))),
+        Mov(Reg(0), Mem('label', Reg(1))),
+        Mov(Mem('label', Int(2)), Reg(0)),
+        Mov(Reg(0), Ptr('label'))
+    ]

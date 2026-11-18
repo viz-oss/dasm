@@ -30,11 +30,22 @@ class Int:
 class Ptr:
     """<name> or <number>   (as an operand of Mov / Arg)
 
-    Reference to memory. The target is a symbol name (str) or a literal
-    address (Int). Created by the parser from a bare name or, on the left
-    side of '=', from a bare number.
+    Address of a symbol (not the value stored there). The target is a symbol name (str).
     """
-    target: str | Int
+    target: str
+
+
+@dataclass(frozen=True, slots=True)
+class Mem:
+    """[<addr>], [rN], rN[<i>], <label>[<i>]
+
+    Access to one memory cell (a native word of the target architecture).
+    base:  literal address (Int), register holding an address (Reg),
+           or a label name (str).
+    index: Int or Reg, counted in words; `[x]` is the same as `x[0]`.
+    """
+    base: Reg | Int | str
+    index: Reg | Int = Int(0)
 
 
 # --- statements ----------------------------------------------------------------
@@ -43,16 +54,20 @@ class Ptr:
 class Mov:
     """<to> = <fr>
 
-    Assign.
+    Memory to memory (Mem = Mem) is allowed; the backend lowers it
+    when the target cannot do it directly.
     """
-    to: Reg | Ptr
-    fr: Reg | Int | Ptr
+    to: Reg | Mem
+    fr: Reg | Int | Ptr | Mem
 
     def to_reg(self):
         return isinstance(self.to, Reg)
 
     def to_ptr(self):
         return isinstance(self.to, Ptr)
+
+    def to_mem(self):
+        return isinstance(self.to, Mem)
 
     def fr_reg(self):
         return isinstance(self.fr, Reg)
@@ -62,6 +77,9 @@ class Mov:
 
     def fr_ptr(self):
         return isinstance(self.fr, Ptr)
+
+    def fr_mem(self):
+        return isinstance(self.fr, Mem)
 
 
 # --- labels and calls ------------------------------------------------------------
@@ -92,7 +110,7 @@ class Arg:
     the label's Param by creating a new node (dataclasses.replace).
     """
     name: str
-    value: Reg | Int | Ptr
+    value: Reg | Int | Ptr | Mem
     reg: Reg | None = None
 
 
