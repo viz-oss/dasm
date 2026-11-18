@@ -55,7 +55,7 @@ r3 = 1_000      ; separator tysięcy
 r4 = r0         ; kopia rejestru
 r5 = message    ; adres etykiety (Ptr)
 message = r0    ; zapis rejestru pod adres symboliczny
-0xD020 = r0     ; zapis rejestru pod adres liczbowy
+[0xD020] = r0   ; zapis rejestru pod adres liczbowy
 ```
 
 - Po lewej stronie może być rejestr (`rN`) albo adres (`nazwa` lub liczba).

@@ -129,7 +129,7 @@ podmianie kod wygląda tak:
 ```asm
 start:
   r0 = 14
-  53280 = r0
+  [53280] = r0
 ```
 
 ## Ograniczenia

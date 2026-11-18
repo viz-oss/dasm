@@ -97,7 +97,7 @@ r0 = label
 ; Take the first element at the label's address
 r0 = label[0]
 
-; Take the element with the number found in register r1x
+; Take the element with the number found in register r1
 r0 = label[r1]
 ```
 

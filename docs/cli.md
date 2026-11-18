@@ -1,6 +1,6 @@
-# Uruchamianie i konfiguracja
+# Running and Configuration
 
-## Podstawowe użycie
+## Basic Usage
 
 ```bash
 python3 dasm.py program.dasm
@@ -9,64 +9,50 @@ python3 dasm.py program.dasm --arch wasm --format wasm -o build/program
 python3 dasm.py program.dasm -d
 ```
 
-`dasm.py` nie wymaga instalacji ani pakietu — wystarczy uruchomić go z katalogu
-projektu (albo dodać ten katalog do `PYTHONPATH`). Wersja jest wypisywana na
-początku: `dasm v2.0.2`.
+`dasm.py` does not require installation or a package — it only needs to be run from the project directory (or have that directory added to `PYTHONPATH`). The version is displayed at startup: `dasm vX.Y.Z`.
 
-## Opcje
+## Options
 
-| Opcja | Znaczenie |
+| Option | Meaning |
 |---|---|
-| `source` | ścieżka do pliku wejściowego `.dasm` (wymagana) |
-| `--arch NAME` | architektura: `alu48`, `arm64`, `mos6502`, `wasm`, `x86` |
+| `source` | path to the input `.dasm` file (required) |
+| `--arch NAME` | architecture: `alu48`, `arm64`, `mos6502`, `wasm`, `x86` |
 | `--format NAME` | format: `bin`, `elf`, `hex`, `macho`, `prg`, `wasm`, `exe` |
-| `-o`, `--output PATH` | nazwa pliku wyjściowego |
-| `-d`, `--debug` | zapisuje `debug = True` w opcjach; obecnie nie ma innego efektu |
-| `-l`, `--log [GRUPY]` | włącza logi: bez wartości wszystkie moduły, z wartością wybrane grupy (`lang`, `lang.preprocess`, `lang+utils`) |
-| `-h`, `--help` | pomoc argparse |
+| `-o`, `--output PATH` | output filename |
+| `-d`, `--debug` | sets `debug = True` in options; currently has no other effect (prepared for generate debug symbols) |
+| `-l`, `--log [GROUPS]` | enables logging: without value, all modules; with value, selected groups (`lang`, `lang.preprocess`, `lang+utils`) |
+| `-h`, `--help` | argparse help |
+## Logging
 
-> `x86`, `elf` i `exe` pozostają placeholderami bez `EXPORTS` i ich
-> użycie kończy się błędem `DasmSyntaxError`. Backend `alu48` jest
-> zintegrowany z `Architecture` i loaderem.
-
-## Logowanie
-
-Argument `-l`/`--log` włącza logi asemblera. Pusty argument loguje
-wszystkie moduły; wartość filtruje grupy nazwane jak pakiety (`lang`,
-`lang.preprocess`, `lang+utils`):
+The `-l`/`--log` argument enables assembler logging. An empty argument logs all modules; a value filters by groups named like packages (`lang`, `lang.preprocess`, `lang+utils`):
 
 ```bash
-python3 dasm.py program.dasm --arch mos6502 --format prg --log
-python3 dasm.py program.dasm --arch mos6502 --format prg --log lang.preprocess
+python3 dasm.py program.dasm --log
+python3 dasm.py program.dasm --log lang
+python3 dasm.py program.dasm --log lang.preprocess
+python3 dasm.py program.dasm --log lang+format
 ```
 
-Wpisy mają postać `[nazwa.loggera] komunikat` i trafiają na stdout. Domyślnie
-logi są wyłączone. `--log` jest niezależny od `-d/--debug`, które tylko
-ustawia opcję `debug`. Szczegóły, grupy i sposób dodawania logów w nowych
-modułach opisuje [logging.md](logging.md).
+Entries are in the format `[logger.name] message` and go to stdout. By default, logging is disabled. `--log` is independent of `-d`/`--debug`, which only sets the `debug` option. Details on logging, groups, and how to add logs in new modules can be found in [logging.md](logging.md).
 
-## Domyślne architektura i format
+## Default Architecture and Format
 
-Domyślna para zależy od `sys.platform`:
+The default pair depends on `sys.platform`:
 
-| System | `sys.platform` | Domyślna architektura | Domyślny format |
+| System | `sys.platform` | Default Architecture | Default Format |
 |---|---|---|---|
 | macOS | `darwin` | `arm64` | `macho` |
 | Linux | `linux`, `linux2` | `x86` | `elf` |
 | Windows | `win32` | `x86` | `exe` |
-| inne | — | `arm64` | `macho` |
+| Other | — | `arm64` | `macho` |
 
-> Na Linuksie i Windows domyślne uruchomienie nie zadziała, dopóki `x86`,
-> `elf` i `exe` nie zostaną zaimplementowane. Do testów używaj wtedy jawnie
-> `--arch wasm --format wasm` albo `--arch mos6502 --format prg`.
+> On Linux and Windows, the default run will not work until `x86`, `elf`, and `exe` are implemented. For testing, explicitly use `--arch wasm --format wasm` or `--arch mos6502 --format prg`.
 
-Kolejność wyboru: **argumenty CLI > `*.toml` > domyślne dla platformy**.
+**Selection Order:** **CLI arguments > `*.toml` > platform defaults**.
 
-## Pliki `*.toml`
+## `*.toml` Files
 
-Po uruchomieniu DASM wczytuje **wszystkie** pliki `*.toml` z bieżącego katalogu
-(posortowane po nazwie). Późniejsze pliki nadpisują wcześniejsze w `options`
-i `env`, a `paths` są sklejane i deduplikowane z zachowaniem kolejności.
+When DASM runs, it loads **all** `*.toml` files from the current directory (sorted by name). Later files override earlier ones in `options` and `env`, while `paths` are concatenated and deduplicated while preserving order.
 
 ```toml
 [dasm.options]
@@ -82,56 +68,39 @@ VIC_BORDER = 0xD020
 paths = ["../lib", "lib"]
 ```
 
-| Sekcja | Znaczenie |
+| Section | Meaning |
 |---|---|
-| `[dasm.options]` | domyślne `arch`, `format`, `debug` (z nadpisaniem przez CLI) |
-| `[dasm.env]` | zmienne do `{NAZWA}` w `.import` **oraz** stałe dostępne w preprocesorze od pierwszej linii |
-| `[dasm.imports].paths` | dodatkowe katalogi wyszukiwania importów (względem katalogu uruchomienia) |
+| `[dasm.options]` | default `arch`, `format`, `debug` (overridden by CLI) |
+| `[dasm.env]` | variables for `{NAME}` in `.import` **and** constants available in the preprocessor from the first line |
+| `[dasm.imports].paths` | additional search directories for imports (relative to execution directory) |
+## Output Filename
 
-Klucz `[dasm.imports].repos` może występować w plikach projektu, ale nie jest
-obecnie używany. Wartości `source`/`output` w `[dasm.options]` są nadpisywane
-argumentami CLI i w praktyce nie mają wpływu.
+- `-o out` results in `out.<ext>` (extension is appended if missing).
+- `-o out.wasm` results in `out.wasm` (no double extension).
+- Without `-o`, the source name is used, replacing `.dasm` with `.<ext>`, e.g., `program.dasm` → `program.wasm`, `program.dasm` → `program.prg`.
+- Output is written in binary mode (`wb`), so `Format.output()` must return `bytes`.
 
-Przykład: `build.toml` w katalogu projektu ustawia `arch = "mos6502"` i
-`format = "prg"`, więc `python3 dasm.py program.dasm` z tego katalogu zbuduje
-plik PRG bez dodatkowych flag.
+## Exit Codes and Messages
 
-## Nazwa pliku wyjściowego
-
-- Z `-o out` powstaje `out.<ext>` (rozszerzenie jest dopisywane, jeśli go brak).
-- Z `-o out.wasm` powstaje `out.wasm` (bez podwajania rozszerzenia).
-- Bez `-o` nazwa źródła jest używana z zamianą `.dasm` na `.<ext>`, np.
-  `program.dasm` → `program.wasm`, `program.dasm` → `program.prg`.
-- Zapis odbywa się w trybie binarnym (`wb`), więc `Format.output()` musi
-  zwracać `bytes`.
-
-## Kody wyjścia i komunikaty
-
-| Sytuacja | Kod | Komunikat |
+| Situation | Code | Message |
 |---|---|---|
-| sukces | `0` | kolejne etapy: `Parsing...OK`, `Architecture...<arch>`, `Assembly...OK`, `Format...<format>`, `"plik"` |
-| brak pliku źródłowego | `1` | `File not found: <ścieżka>` na `stderr` |
-| błąd składni/preprocesora | `1` | `<plik>:<linia>:<kolumna>: syntax error` + treść błędu na `stderr` |
-| błąd argumentów | `2` | komunikat argparse |
-| błąd modułu/formatowania | — | nieprzechwycony wyjątek (traceback Pythona) |
+| Success | `0` | subsequent stages: `Parsing...OK`, `Architecture...<arch>`, `Assembly...OK`, `Format...<format>`, `"file"` |
+| Source file not found | `1` | `File not found: <path>` on `stderr` |
+| Syntax/Preprocessor error | `1` | `<file>:<line>:<column>: syntax error` + error content on `stderr` |
+| Argument error | `2` | argparse message |
+| Module/Formatting error | — | uncaught exception (Python traceback) |
 
-Logi (`--log`) idą na stdout i nie zmieniają kodów wyjścia; diagnostyka
-błędów pozostaje na stderr. Opis systemu logów: [logging.md](logging.md).
+Logs (`--log`) go to stdout and do not change exit codes; diagnostics are on stderr. The logging system description is in [logging.md](logging.md).
 
-Błędy składni są relokowane do oryginalnego pliku i linii (także po
-`.import`), a kolumna do oryginalnego tekstu przed podmianą stałych. Szczegóły:
-[errors.md](errors.md).
+Syntax errors are relocated to the original file and line (including after `.import`), and the column to the original text before constant substitution. Details: [errors.md](errors.md).
 
-## Ładowanie modułów
+## Module Loading
 
-Architektury i formaty są importowane dynamicznie przez
-`utils.modules.load_module(dir, name)`:
+Architectures and formats are dynamically imported via `utils.modules.load_module(dir, name)`:
 
-1. `dir` i `name` mogą zawierać tylko litery, cyfry i `_`,
-2. importowany jest moduł `dir.name` (z cache `lru_cache(32)`),
-3. moduł musi eksportować `EXPORTS` będący klasą lub funkcją,
-4. `load_module()` zwraca `EXPORTS()` (gotową instancję).
+1. `dir` and `name` may only contain letters, numbers, and `_`.
+2. The module `dir.name` is imported (with `lru_cache(32)`),
+3. the module must export `EXPORTS` as a class or function,
+4. `load_module()` returns `EXPORTS()` (a ready instance).
 
-Brak `EXPORTS` daje `DasmSyntaxError: Module <dir>/<name>.py does not contain
-EXPORTS`. Kontrakt architektur i formatów opisują
-[architectures.md](architectures.md) i [formats.md](formats.md).
+Lack of `EXPORTS` results in `DasmSyntaxError: Module <dir>/<name>.py does not contain EXPORTS`. The contracts for architectures and formats are described in [architectures.md](architectures.md) and [formats.md](formats.md).
