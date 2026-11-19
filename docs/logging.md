@@ -1,17 +1,17 @@
-# Logowanie
+# Logging
 
-DASM ma wbudowany system logów oparty na module `logging` z biblioteki
-standardowej. Implementacja znajduje się w `utils/log.py`, a logi włącza się
-argumentem startowym `-l`/`--log`.
+DASM has a built-in logging system based on the standard library's `logging`
+module. The implementation is in `utils/log.py`; enable logging with the
+`-l`/`--log` command-line argument.
 
-## Argument `--log`
+## The `--log` argument
 
-| Forma | Efekt |
+| Form | Effect |
 |---|---|
-| brak argumentu | logi są wyłączone (domyślnie) |
-| `-l`, `--log` | loguje wszystkie grupy (`*`) |
-| `-l GRUPA`, `--log GRUPA` | loguje tylko wskazane grupy |
-| `-l GRUPA1+GRUPA2` | kilka grup rozdzielonych znakiem `+` |
+| no argument | logging is disabled (default) |
+| `-l`, `--log` | logs all groups (`*`) |
+| `-l GROUP`, `--log GROUP` | logs only the specified groups |
+| `-l GROUP1+GROUP2` | logs multiple groups separated by `+` |
 
 ```bash
 python3 dasm.py program.dasm --arch mos6502 --format prg
@@ -20,43 +20,43 @@ python3 dasm.py program.dasm --arch mos6502 --format prg --log lang
 python3 dasm.py program.dasm --arch mos6502 --format prg --log lang.preprocess
 ```
 
-Ponieważ `--log` przyjmuje opcjonalną wartość, źródło podawaj przed flagą
-(`... --log lang`) albo użyj `--log=lang`. Samo `-l` na końcu polecenia
-loguje wszystko.
+Because `--log` takes an optional value, put the source path before the flag
+(`... --log lang`) or use `--log=lang`. A bare `-l` at the end of the command
+logs everything.
 
-### Grupy
+### Groups
 
-Grupą jest pierwszy człon nazwy loggera, czyli nazwa pakietu, a pełna nazwa
-loggera też może być użyta jako filtr:
+A group is the first component of a logger's name, meaning the package name.
+The full logger name can also be used as a filter:
 
-| Filtr | Co loguje |
+| Filter | What it logs |
 |---|---|
-| `lang` | wszystkie moduły w `lang/` (`lang.syntax`, `lang.preprocess`, …) |
-| `lang.preprocess` | tylko preprocesor |
-| `lang+utils` | moduły z `lang/` i `utils/` |
-| `*` | wszystko (to samo co `-l` bez wartości) |
+| `lang` | all modules in `lang/` (`lang.syntax`, `lang.preprocess`, …) |
+| `lang.preprocess` | the preprocessor only |
+| `lang+utils` | modules in `lang/` and `utils/` |
+| `*` | everything (same as `-l` with no value) |
 
-Nieznana grupa nie jest błędem — po prostu nic nie pasuje i nie pojawia się
-żaden log. Filtr dopasowuje pełną nazwę loggera (`record.name`) albo jej
-pierwszy człon.
+An unknown group is not an error; nothing matches, so no logs appear. The filter
+matches either the full logger name (`record.name`) or its first component.
 
-## Format i miejsce wyjścia
+## Format and output destination
 
-Logi trafiają na **stdout** przez `StreamHandler` dołączony do loggera
-głównego. Każdy wpis ma postać:
+Logs are sent to **stdout** through a `StreamHandler` attached to the root
+logger. Each entry has this form:
 
 ```
 [%(name)s] %(message)s
 ```
 
-np. dla źródła:
+For example, given this source:
 
 ```asm
 .set BORDER = 0xD020
 0xD020 = BORDER
 ```
 
-log wygląda tak (linia przed i po podmianie, `.set` nie jest logowany):
+The log looks like this (the line before and after substitution; `.set` is not
+logged):
 
 ```
 dasm v2.0.2
@@ -65,58 +65,57 @@ Parsing...[lang.preprocess] 2: 0xD020 = BORDER
 [lang.preprocess] 3:
 ```
 
-Linie bez zmian są logowane raz, a linie po podmianie stałych dwa razy.
+Unchanged lines are logged once, while lines with substituted constants are
+logged twice.
 
-Poziom loggera głównego i handlera to `DEBUG`, więc `logger.debug()`,
-`logger.info()` i pozostałe poziomy przechodzą do filtra grup. Filtr decyduje
-wyłącznie o tym, *które* wpisy są pokazywane, a nie o ich poziomie.
+The root logger and handler are set to `DEBUG`, so `logger.debug()`,
+`logger.info()`, and other levels reach the group filter. The filter decides
+only *which* entries are shown, not their log level.
 
-Ponieważ logi i komunikaty etapów (`Parsing...`, `Assembly...OK`) idą na
-stdout, a błędy składni na stderr, kolejność w terminalu może się przeplatać.
-W potokach stdout jest buforowany, dlatego logi mogą pojawić się po
-komunikacie błędu.
+Because logs and stage messages (`Parsing...`, `Assembly...OK`) go to stdout,
+while syntax errors go to stderr, their order in the terminal may be mixed. In
+pipelines, stdout is buffered, so logs may appear after an error message.
 
 ## `utils/log.py`
 
-Moduł udostępnia:
+The module provides:
 
-| Element | Znaczenie |
+| Item | Meaning |
 |---|---|
-| `setup(groups_arg)` | konfiguruje logger główny i dodaje handler z filtrem; wywoływane raz w `dasm.py` przed nagłówkiem wersji |
-| `LogGroupFilter(allowed_groups)` | filtr wpisów według nazwy loggera; `None` blokuje wszystko, `{'*'}` przepuszcza wszystko |
-| `red(s)`, `green(s)`, `gray(s)` | pomocnicze kolorowanie tekstu (ANSI) |
+| `setup(groups_arg)` | configures the root logger and adds a handler with a filter; called once in `dasm.py` before the version header |
+| `LogGroupFilter(allowed_groups)` | filters entries by logger name; `None` blocks everything, `{'*'}` allows everything |
+| `red(s)`, `green(s)`, `gray(s)` | helper functions for coloring text (ANSI) |
 
-`setup()` przyjmuje surowy ciąg z CLI i zamienia `A+B` na zbiór grup. Bez
-argumentu zbiór jest pusty, więc domyślnie nic nie jest logowane.
+`setup()` takes the raw CLI string and converts `A+B` into a set of groups. With
+no argument, the set is empty, so nothing is logged by default.
 
-Funkcje `red()`, `green()` i `gray()` dodają kody ANSI tylko wtedy, gdy
-`sys.stdout.isatty()` jest prawdziwe, więc w potokach i plikach tekst
-pozostaje czysty. Preprocesor używa `red()` dla linii przed podmianą stałych
-i `green()` dla linii wynikowej (patrz
-[preprocess_set.md](preprocess_set.md)).
+The `red()`, `green()`, and `gray()` functions add ANSI codes only when
+`sys.stdout.isatty()` is true, so text stays plain in pipelines and files. The
+preprocessor uses `red()` for a line before constant substitution and `green()`
+for the resulting line (see [preprocess_set.md](preprocess_set.md)).
 
-## Dodawanie logów w nowym module
+## Adding logs in a new module
 
-Wystarczy użyć standardowego loggera z nazwą modułu — nie trzeba tworzyć
-własnego handlera ani konfiguracji:
+Use the standard logger named after the module; there is no need to create a
+custom handler or configuration:
 
 ```python
 import logging
 
 logger = logging.getLogger(__name__)
 
-logger.debug("szczegóły")
-logger.info("krok działania")
+logger.debug("details")
+logger.info("operation step")
 ```
 
-Logger o nazwie `lang.mojmodul` będzie widoczny dla `--log lang`,
-`--log lang.mojmodul` i `--log` bez wartości. Grupy nie trzeba nigdzie
-rejestrować.
+A logger named `lang.mymodule` will appear with `--log lang`,
+`--log lang.mymodule`, and `--log` with no value. Groups do not need to be
+registered anywhere.
 
-## `--log` a `-d/--debug`
+## `--log` vs. `-d/--debug`
 
-To niezależne opcje:
+These are independent options:
 
-- `-l`/`--log` włącza diagnostykę samego asemblera na stdout,
-- `-d`/`--debug` ustawia `debug = True` w opcjach przekazywanych do
-  backendów i nie wpływa na logi.
+- `-l`/`--log` enables diagnostics from the assembler itself on stdout.
+- `-d`/`--debug` sets `debug = True` in the options passed to backends and does
+  not affect logging.

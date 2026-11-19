@@ -1,16 +1,16 @@
-# Architektury
+# Architectures
 
-Architektura to backend, który zamienia AST na listę słów wyjściowych
-(`list[int]`). Wybór odbywa się przez `--arch NAME` lub `[dasm.options].arch`.
+An architecture is a backend that converts the AST into a list of output words
+(`list[int]`). Select one with `--arch NAME` or `[dasm.options].arch`.
 
-## Interfejs `Architecture`
+## `Architecture` interface
 
-Plik `arch/base.py` definiuje klasę abstrakcyjną:
+The `arch/base.py` file defines the abstract class:
 
 ```python
 class Architecture(ABC):
-    word_size: int = 1          # rozmiar jednego elementu wyjścia w bajtach
-    entry_jump_size: int = 0    # rozmiar skoku wejściowego (0 = brak)
+    word_size: int = 1          # size of one output element in bytes
+    entry_jump_size: int = 0    # size of the entry jump (0 = none)
     endian: Literal['little', 'big'] | None = None
 
     def assembly(self, ast, origin=0, start=None, entry_jump=False) -> list[int]
@@ -21,94 +21,94 @@ class Architecture(ABC):
     def jmp(self, target: str, offset=0) -> list[int]
 ```
 
-Metody `mov`, `call`, `ret`, `exit`, `jmp` są abstrakcyjne i muszą być
-zaimplementowane (mogą na razie rzucać `NotImplementedError`). Bazowa
-`assembly()` obsługuje cały przebieg:
+The `mov`, `call`, `ret`, `exit`, and `jmp` methods are abstract and must be
+implemented (they may raise `NotImplementedError` for now). The base
+`assembly()` method handles the full process:
 
-1. czyści `labels`, `relocations`, `origin`, `start`, `entry`,
-2. jeśli podano `start` i `entry_jump=True`, emitowany jest `jmp(start)` na
-   początku (etykiety są automatycznie przesunięte o `entry_jump_size`),
-3. dla każdej instrukcji AST:
-   - `Start` — no-op (punkt wejścia obsługuje CLI/format),
-   - `Label` — zapis przesunięcia w bajtach (`len(output) * word_size`),
+1. Clears `labels`, `relocations`, `origin`, `start`, and `entry`.
+2. If `start` is specified and `entry_jump=True`, emits `jmp(start)` at the
+   beginning (labels are automatically shifted by `entry_jump_size`).
+3. Processes each AST instruction:
+   - `Start` — no-op (the CLI/format handles the entry point),
+   - `Label` — records the offset in bytes (`len(output) * word_size`),
    - `Mov` → `mov()`,
    - `Call` → `call(instr, offset=len(output))`,
-   - `Raw` → `raw()` (domyślnie jeden bajt na wartość),
+   - `Raw` → `raw()` (one byte per value by default),
    - `Return` → `ret()`,
-   - `Exit` → `exit()`,
-4. `apply_relocations()` uzupełnia adresy etykiet i sprawdza zakres,
-5. jeśli podano `start`, ustawia `entry = origin + labels[start]`.
+   - `Exit` → `exit()`.
+4. `apply_relocations()` fills in label addresses and checks their range.
+5. If `start` is specified, sets `entry = origin + labels[start]`.
 
-`Relocation(offset, target, size=2, endian='little')` wskazuje indeks w
-`output`, od którego trzeba wpisać adres etykiety. `apply_relocations()`
-zgłasza `Undefined label: ...` oraz `Address out of range for ...`.
+`Relocation(offset, target, size=2, endian='little')` specifies the index in
+`output` where a label address should be written. `apply_relocations()` raises
+`Undefined label: ...` and `Address out of range for ...`.
 
-> Relokacje są zaprojektowane dla architektur jednobajtowych (`word_size = 1`).
-> Dla `arm64` (`word_size = 4`) nie są jeszcze używane.
+> Relocations are designed for byte-oriented architectures (`word_size = 1`).
+> They are not yet used for `arm64` (`word_size = 4`).
 
-## Stan backendów
+## Backend status
 
 ### `arm64` — `arch/arm64.py`
 
-- `word_size = 4`, `endian = 'little'`, brak skoku wejściowego.
+- `word_size = 4`, `endian = 'little'`, no entry jump.
 - `mov`:
-  - `rN = <liczba 0..0xFFFF>` → jedna instrukcja `MOVZ` (32-bitowe słowo),
-  - `rN = rM` → `_orr`, na razie `NotImplementedError`,
-  - `rN = <adres>`, `<adres> = rN` → `NotImplementedError`.
-- `_movz(rd, imm16, hw=0, x=True)` buduje słowo `MOVZ`; waliduje `rd` w
-  `0..31`, `imm16` w `0..0xFFFF`, `hw` w `0..3`.
+  - `rN = <number 0..0xFFFF>` → one `MOVZ` instruction (a 32-bit word),
+  - `rN = rM` → `_orr`, currently raises `NotImplementedError`,
+  - `rN = <address>`, `<address> = rN` → `NotImplementedError`.
+- `_movz(rd, imm16, hw=0, x=True)` builds a `MOVZ` word; validates that `rd`
+  is in `0..31`, `imm16` is in `0..0xFFFF`, and `hw` is in `0..3`.
 - `call`, `ret`, `exit`, `jmp` → `NotImplementedError`.
-- Etykiety są rejestrowane przez bazową `assembly()`, ale nic ich nie używa.
+- Labels are recorded by the base `assembly()`, but nothing uses them.
 
 ### `mos6502` — `arch/mos6502.py`
 
-Rejestry wirtualne: `r0` = A, `r1` = X, `r2` = Y.
+Virtual registers: `r0` = A, `r1` = X, `r2` = Y.
 
 - `word_size = 1`, `endian = 'little'`, `entry_jump_size = 3` (`JMP $xxxx`).
 - `mov`:
   - `r0/r1/r2 = <0..255>` → `LDA/LDX/LDY #imm` (`0xA9`, `0xA2`, `0xA0`),
   - `<0..65535> = r0/r1/r2` → `STA/STX/STY absolute` (`0x8D`, `0x8E`, `0x8C`),
-  - pozostałe kombinacje → `NotImplementedError`.
-- `call`: argumenty są emitowane przez `mov()` do rejestrów z `Arg.reg`,
-  następnie `JSR` (`0x20`) z 2-bajtową relokacją adresu. `Arg.reg` musi być
-  wcześniej uzupełnione przez `lang.symbols.resolve()`; sam parser zostawia je
-  jako `None`. Obecnie działają
-  argumenty będące liczbami; rejestry i wskaźniki wymagają trybów `mov`,
-  których jeszcze nie ma.
-- `ret` i `exit` → `RTS` (`0x60`).
-- `jmp` → `JMP` (`0x4C`) z relokacją 2-bajtową.
-- Tryby adresowania `zero page`, `absolute,X/Y`, `indirect` itd. mają metody
-  pomocnicze, ale wszystkie rzucają `NotImplementedError`.
-- `_absolute16()` przyjmuje wyłącznie `int` w `0..65535`.
+  - other combinations → `NotImplementedError`.
+- `call`: arguments are emitted by `mov()` into the registers specified by
+  `Arg.reg`, then `JSR` (`0x20`) is emitted with a 2-byte address relocation.
+  `Arg.reg` must first be populated by `lang.symbols.resolve()`; the parser
+  itself leaves it as `None`. Numeric arguments currently work; registers and
+  pointers require `mov` modes that are not implemented yet.
+- `ret` and `exit` → `RTS` (`0x60`).
+- `jmp` → `JMP` (`0x4C`) with a 2-byte relocation.
+- Addressing modes such as `zero page`, `absolute,X/Y`, and `indirect` have
+  helper methods, but all of them raise `NotImplementedError`.
+- `_absolute16()` accepts only an `int` in `0..65535`.
 
 ### `wasm` — `arch/wasm.py`
 
-- `word_size = 1`, `endian = 'little'`, brak skoku wejściowego.
-- Jedna domyślna funkcja i jeden lokal na rejestr: `rN` → lokal `N`.
-- Emituje opcody WASM i zawsze zamyka ciało funkcji opcodem `end` (`0x0B`).
-- Szczegóły: [wasm.md](wasm.md).
+- `word_size = 1`, `endian = 'little'`, no entry jump.
+- One default function and one local per register: `rN` → local `N`.
+- Emits WASM opcodes and always closes the function body with the `end` opcode
+  (`0x0B`).
+- Details: [wasm.md](wasm.md).
 
 ### `x86` — `arch/x86.py`
 
-Placeholder (sam docstring). Brak `EXPORTS`, więc `--arch x86` kończy się
+Placeholder (docstring only). It has no `EXPORTS`, so `--arch x86` fails with
 `DasmSyntaxError: Module arch/x86.py does not contain EXPORTS`.
 
 ### `alu48` — `arch/alu48.py`
 
-Backend 4-bitowego ALU dziedziczący po `Architecture`. Emituje jednobajtowe
-słowa sterujące przez `encode(mnemonic, operands, context)` i udostępnia
-`microcode_table()`. Eksportuje klasę przez `EXPORTS`, więc działa z
-`load_module()`; operacje CPU (`mov`, `call`, `ret`, `exit`, `jmp`)
-nie dotyczą tego backendu i zgłaszają `NotImplementedError`.
+A 4-bit ALU backend that inherits from `Architecture`. It emits single-byte
+control words through `encode(mnemonic, operands, context)` and provides
+`microcode_table()`. It exports its class through `EXPORTS`, so it works with
+`load_module()`; CPU operations (`mov`, `call`, `ret`, `exit`, `jmp`) do not
+apply to this backend and raise `NotImplementedError`.
 
-## Dodawanie architektury
+## Adding an architecture
 
-1. Utwórz `arch/nazwa.py` z klasą dziedziczącą po `arch.base.Architecture`.
-2. Ustaw `word_size`, `endian` i ewentualnie `entry_jump_size`.
-3. Zaimplementuj `mov`, `call`, `ret`, `exit`, `jmp` (stuby z
-   `NotImplementedError` są dopuszczalne).
-4. Na końcu pliku dodaj `EXPORTS = TwojaKlasa` (musi być callable).
-5. Dodaj `nazwa` do `choices` w `--arch` w `dasm.py`.
-6. Dopisz testy do `tests/test_arch_nazwa.py`.
+1. Create `arch/name.py` with a class that inherits from `arch.base.Architecture`.
+2. Set `word_size`, `endian`, and, if needed, `entry_jump_size`.
+3. Implement `mov`, `call`, `ret`, `exit`, and `jmp` (stubs that raise
+   `NotImplementedError` are acceptable).
+4. Add `EXPORTS = YourClass` at the end of the file (`YourClass` must be callable).
+5. Add `name` to the `choices` for `--arch` in `dasm.py`.
+6. Add tests in `tests/test_arch_name.py`.
 
-Więcej: [README dokumentacji](README.md) oraz [AGENTS.md](../AGENTS.md).
+More: [documentation README](README.md) and [AGENTS.md](../AGENTS.md).

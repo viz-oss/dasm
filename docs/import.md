@@ -1,52 +1,53 @@
-# `.import` — wklejanie plików źródłowych
+# `.import` — inserting source files
 
-`.import` wkleja cały plik `.dasm` w miejsce linii importu, **przed**
-preprocesorem. Dzięki temu stałe z `.set` z zaimportowanego pliku są widoczne
-w dalszej części połączonego źródła.
+`.import` inserts an entire `.dasm` file in place of the import line, **before**
+preprocessing. This makes `.set` constants from the imported file visible in the
+rest of the combined source.
 
-## Składnia
+## Syntax
 
 ```asm
 .import 'sys/c64/vic.dasm'
 .import "sys/c64/vic.dasm"
 .import 'sys/{OS}/vic'
-.import 'lib.dasm' ; komentarz
+.import 'lib.dasm' ; comment
 ```
 
-- `.import` musi być pierwszą rzeczą w linii — przed nim dozwolone są tylko
-  spacje i tabulatory. Nie może wystąpić po innym kodzie.
-- Cudzysłowy pojedyncze i podwójne są równoważne, ale muszą się zgadzać.
-- Po ścieżce może wystąpić komentarz `;`, `#` lub `//`.
-- Nazwa dyrektywy jest wrażliwa na wielkość liter: `.import`, nie `.IMPORT`.
-- Linia z `.import` w komentarzu jest ignorowana.
-- Importowany plik jest czytany jako UTF-8. Końcowy newline jest usuwany, aby
-  nie dodawać pustej linii.
+- `.import` must be the first thing on a line; only spaces and tabs may precede
+  it. It cannot appear after other code.
+- Single and double quotes are equivalent, but each opening quote must match its
+  closing quote.
+- A comment may follow the path: `;`, `#`, or `//`.
+- The directive name is case-sensitive: `.import`, not `.IMPORT`.
+- A line where `.import` appears inside a comment is ignored.
+- The imported file is read as UTF-8. Its trailing newline is removed to avoid
+  adding an empty line.
 
-## Szukanie pliku
+## File lookup
 
-Dla importu względnego kolejność jest następująca:
+For a relative import, paths are searched in this order:
 
-1. katalog pliku, który zawiera `.import`,
-2. kolejne wpisy z `[dasm.imports].paths` (ścieżki są rozwiązywane względem
-   **bieżącego katalogu uruchomienia**),
-3. bieżący katalog roboczy.
+1. The directory containing the file with the `.import` directive.
+2. The entries in `[dasm.imports].paths` (paths are resolved relative to the
+   **current working directory when the program is run**).
+3. The current working directory.
 
-Katalogi są deduplikowane po rozwiązaniu ścieżki. Jeśli nazwa nie ma
-rozszerzenia, sprawdzane są dwie wersje: `nazwa` oraz `nazwa.dasm`.
+Directories are deduplicated after resolving their paths. If a name has no
+extension, both `name` and `name.dasm` are checked.
 
-Ścieżki absolutne nie są łączone z powyższymi katalogami, ale przy braku
-rozszerzenia nadal sprawdzane są warianty `nazwa` i `nazwa.dasm`.
+Absolute paths are not combined with the directories above. If the extension is
+omitted, the `name` and `name.dasm` variants are still checked.
 
 ```toml
 [dasm.imports]
 paths = ["../lib", "lib"]
 ```
 
-Klucz `[dasm.imports].repos` nie jest obecnie używany.
+The `[dasm.imports].repos` key is not currently used.
 
-## Zmienne środowiskowe
+## Environment variables
 
-W ścieżce można użyć `{NAZWA}`. Wartość pochodzi z `[dasm.env]`:
+You can use `{NAME}` in a path. Its value comes from `[dasm.env]`:
 
 ```toml
 [dasm.env]
@@ -57,24 +58,25 @@ OS = "c64"
 .import 'sys/{OS}/vic'
 ```
 
-Nazwa zmiennej to `[A-Za-z_]\w*`. Brak zmiennej w `env` jest błędem:
-`unknown environment variable 'MISSING' in import path ...`.
+A variable name must match `[A-Za-z_]\\w*`. A variable missing from `env` is an
+error: `unknown environment variable 'MISSING' in import path ...`.
 
-## Duplikaty i cykle
+## Duplicates and cycles
 
-- Każdy plik jest wklejany tylko raz w całym drzewie importów.
-- Kolejny import tego samego pliku zastępowany jest **pustą linią** (numeracja
-  linii się nie zmienia).
-- Cykl importów (`a -> b -> a`) jest błędem: `circular import: a -> b -> a`.
-- Import samego siebie jest błędem (plik główny też jest na stosie).
-- Kolejność wklejania jest depth-first: importowany plik jest wstawiany w
-  miejscu dyrektywy, przed dalszymi liniami pliku importującego.
+- Each file is inserted only once across the entire import tree.
+- A subsequent import of the same file is replaced with an **empty line** (line
+  numbering stays the same).
+- An import cycle (`a -> b -> a`) is an error:
+  `circular import: a -> b -> a`.
+- Importing a file into itself is an error (the main file is also on the stack).
+- Insertion order is depth-first: an imported file is inserted at the directive,
+  before the remaining lines of the importing file.
 
-## Numery linii i kolumny
+## Line numbers and columns
 
-Wklejenie pliku zastępuje jedną linię wieloma liniami, więc numery kolejnych
-linii w połączonym tekście się przesuwają. `resolve_with_map()` zwraca razem z
-tekstem `SourceMap`, która pamięta segmenty:
+Inserting a file replaces one line with multiple lines, shifting the line numbers
+that follow in the combined text. Along with the text, `resolve_with_map()`
+returns a `SourceMap` that keeps track of segments:
 
 ```text
 [1..11]   examples/c64.dasm      line 1
@@ -82,19 +84,18 @@ tekstem `SourceMap`, która pamięta segmenty:
 [90..]    examples/c64.dasm      line 13
 ```
 
-Dzięki temu błąd w wirtualnej linii jest raportowany względem oryginalnego
-pliku i linii, a `preprocess_with_map()` dokłada `ColumnMap` korygującą
-kolumny po podmianie stałych. Kontekst błędu jest odtwarzany z oryginalnej
-linii pliku, a nie z tekstu po podmianie.
+This lets an error on a virtual line be reported against its original file and
+line. `preprocess_with_map()` also adds a `ColumnMap` to adjust columns after
+constant substitution. Error context is reconstructed from the original source
+line, not from the substituted text.
 
-Błędy samego importu (brak pliku, cykl, zła zmienna env) mają od razu
-ustawioną nazwę pliku (pliku importującego) oraz linię i kolumnę
-`.import`. Błędy preprocesora i parsera są relokowane przez `SourceMap` w
-`dasm.py`.
+Import errors themselves (missing file, cycle, invalid environment variable)
+already have the importing file's name and the line and column of `.import`.
+Preprocessor and parser errors are mapped by `SourceMap` in `dasm.py`.
 
-Pełny opis mechanizmu: [errors.md](errors.md).
+For a full description of the mechanism, see [errors.md](errors.md).
 
-## Przykład
+## Example
 
 `main.dasm`:
 
@@ -123,8 +124,8 @@ OS = "c64"
 paths = ["../sys"]
 ```
 
-Po rozwiązaniu importu preprocesor widzi oba `.set` przed ich użyciem, a po
-podmianie kod wygląda tak:
+After import resolution, the preprocessor sees both `.set` directives before
+their use. After substitution, the code looks like this:
 
 ```asm
 start:
@@ -132,10 +133,11 @@ start:
   [53280] = r0
 ```
 
-## Ograniczenia
+## Limitations
 
-- Brak importu warunkowego, makr i `include` o innej semantyce.
-- Brak wykrywania nieużywanych importów — wklejany jest cały plik.
-- Import nie jest cyklicznie rozwiązywany względem przyszłych ścieżek z
-  `paths`; katalogi są ustalane w momencie napotkania dyrektywy.
-- `{NAZWA}` podstawia surową wartość z `env` (bez konwersji typów).
+- There is no conditional import, macro support, or `include` directive with
+  different semantics.
+- Unused imports are not detected; the entire file is inserted.
+- Imports are not resolved again against paths added later in `paths`; the search
+  directories are determined when the directive is encountered.
+- `{NAME}` is replaced with the raw value from `env` (without type conversion).

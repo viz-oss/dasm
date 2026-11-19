@@ -1,8 +1,8 @@
-# Błędy i mapowanie źródła
+# Errors and source mapping
 
 ## `DasmSyntaxError`
 
-Wszystkie błędy składni, preprocesora i importów są zgłaszane jako
+All syntax, preprocessing, and import errors are reported as
 `lang.exceptions.DasmSyntaxError`:
 
 ```python
@@ -12,38 +12,39 @@ DasmSyntaxError(
 )
 ```
 
-| Pole | Znaczenie |
+| Field | Meaning |
 |---|---|
-| `line`, `col` | pozycja 1-based (może być `None`) |
-| `expected` | lista oczekiwanych tokenów (wyświetlana jako `Expected a or b`) |
-| `message` | treść błędu; przy `context=True` zawiera też linię i `^` |
-| `file` | plik źródłowy (jeśli już znany) |
-| `map_columns` | czy kolumnę trzeba przetłumaczyć przez `ColumnMap` |
-| `context` | czy odtworzyć kontekst z oryginalnej linii |
+| `line`, `col` | 1-based position (may be `None`) |
+| `expected` | list of expected tokens (displayed as `Expected a or b`) |
+| `message` | error message; with `context=True`, also includes the line and `^` |
+| `file` | source file (if already known) |
+| `map_columns` | whether the column should be translated through `ColumnMap` |
+| `context` | whether to reconstruct context from the original line |
 
-`str(error)` zwraca `Expected ...\n\n<message>` albo samo `message`.
+`str(error)` returns `Expected ...\\n\\n<message>` or just `message`.
 
-## Skąd biorą się błędy
+## Where errors originate
 
-| Etap | Ustawia `line`/`col` | `map_columns` | `context` | `file` |
+| Stage | Sets `line`/`col` | `map_columns` | `context` | `file` |
 |---|---|---|---|---|
-| parser (Lark `UnexpectedInput`) | tak | `True` | `True` | później |
-| parser (`VisitError`, zły literał) | tak (jeśli token ma) | `True` | `False` | później |
-| resolver symboli (`lang.symbols.resolve`) | nie | `False` | `False` | później |
-| preprocesor (`.set`, config) | zwykle tak | `False` | `False` | później |
-| import (brak pliku, cykl, env) | tak | `False` | `False` | **tak** |
+| parser (Lark `UnexpectedInput`) | yes | `True` | `True` | later |
+| parser (`VisitError`, invalid literal) | yes (if the token has a position) | `True` | `False` | later |
+| symbol resolver (`lang.symbols.resolve`) | no | `False` | `False` | later |
+| preprocessor (`.set`, config) | usually | `False` | `False` | later |
+| import (missing file, cycle, env) | yes | `False` | `False` | **yes** |
 
-Błędy resolvera symboli to m.in. `label 'foo' defined twice`,
-`call: unknown label 'foo'`, `missing arguments ['a']`, nieznany parametr oraz
-`unknown symbol 'name'`. Nie mają jeszcze numeru linii ani kolumny, ale CLI
-wywołuje resolver przed assembly i przechwytuje te błędy jako `DasmSyntaxError`.
+Symbol resolver errors include `label 'foo' defined twice`,
+`call: unknown label 'foo'`, `missing arguments ['a']`, an unknown parameter,
+and `unknown symbol 'name'`. They do not yet have a line or column number, but
+the CLI calls the resolver before assembly and catches these errors as
+`DasmSyntaxError`.
 
-## Potok relokacji
+## Source mapping pipeline
 
-`dasm.py` robi:
+`dasm.py` does the following:
 
 ```python
-resolved = resolve_with_map(...)          # pliki + SourceMap
+resolved = resolve_with_map(...)          # files + SourceMap
 preprocessed = preprocess_with_map(...)   # .set + ColumnMap
 ast = parse(preprocessed.text)
 ast = lang.symbols.resolve(ast)
@@ -51,49 +52,49 @@ except DasmSyntaxError as e:
     e = source_map.relocate(e, preprocessed.column_maps)
 ```
 
-- Błędy importu mają już `file`, więc `relocate()` ich nie zmienia.
-- Błędy preprocesora i parsera mają wirtualne numery linii (po wklejeniu
-  importów), które `SourceMap` tłumaczy na plik i linię.
-- Błędy resolvera nie zawierają jeszcze pozycji źródłowej, ponieważ AST nie
-  przechowuje lokalizacji etykiet, wywołań ani wskaźników.
-- Kolumny parsera są tłumaczone przez `ColumnMap`, jeśli tekst został
-  zmieniony przez `.set` (np. `X` → `1000`).
+- Import errors already have `file`, so `relocate()` leaves them unchanged.
+- Preprocessor and parser errors have virtual line numbers (after imports are
+  inserted), which `SourceMap` maps to the source file and line.
+- Resolver errors do not yet include source positions because the AST does not
+  store the locations of labels, calls, or pointers.
+- Parser columns are mapped through `ColumnMap` if the text was changed by
+  `.set` (for example, `X` → `1000`).
 
 ## `SourceMap`
 
-`SourceMap(locations)` dostaje listę `SourceLocation(path, line)` dla kolejnych
-wirtualnych linii. Kolejne linie z tego samego pliku i o kolejnych numerach są
-łączone w `SourceSegment(start, end, path, line)`.
+`SourceMap(locations)` takes a list of `SourceLocation(path, line)` values for
+successive virtual lines. Consecutive lines from the same file with consecutive
+line numbers are grouped into `SourceSegment(start, end, path, line)`.
 
-- `lookup(virtual_line)` zwraca `SourceLocation` albo `None` (poza zakresem),
-- `original_line(location)` czyta oryginalny plik UTF-8 (z cache) i zwraca
-  właściwą linię; przy błędzie odczytu lub poza zakresem — `None`,
+- `lookup(virtual_line)` returns a `SourceLocation` or `None` (if out of range).
+- `original_line(location)` reads the original UTF-8 file (using a cache) and
+  returns the corresponding line; returns `None` if reading fails or the line
+  is out of range.
 - `relocate(error, column_maps=None)`:
-  1. jeśli `error.file` jest ustawione albo `line is None` — zwraca błąd bez
-     zmian,
-  2. `lookup()`; brak lokalizacji — bez zmian,
-  3. jeśli `map_columns` i jest `ColumnMap` — tłumaczy kolumnę,
-  4. ustawia `file` i `line`,
-  5. jeśli `context` — podmienia `message` na oryginalną linię z `^`
-     (taby są rozwijane przy liczeniu pozycji kursora),
-  6. odświeża `error.args`.
+  1. If `error.file` is set or `line is None`, returns the error unchanged.
+  2. Calls `lookup()`; if no location is found, returns the error unchanged.
+  3. If `map_columns` is set and a `ColumnMap` is available, maps the column.
+  4. Sets `file` and `line`.
+  5. If `context` is set, replaces `message` with the original line and a `^`
+     marker (tabs are expanded when calculating the cursor position).
+  6. Refreshes `error.args`.
 
 ## `ColumnMap`
 
-`ColumnMap` opisuje jedną linię jako listę `ColumnSegment(start, end, source,
-fixed=False)`.
+`ColumnMap` describes a single line as a list of `ColumnSegment(start, end,
+source, fixed=False)` values.
 
-- brak segmentów → kolumna bez zmian (identity),
-- kolumna przed pierwszym segmentem → bez zmian,
-- `fixed=True` (podstawiona stała) → **każda** kolumna segmentu wskazuje na
-  `source`, czyli na początek nazwy stałej,
-- w przeciwnym razie `source + (processed_col - start)`.
+- No segments → the column is unchanged (identity mapping).
+- A column before the first segment → unchanged.
+- `fixed=True` (a constant was substituted) → **every** column in the segment
+  points to `source`, the beginning of the constant's name.
+- Otherwise, the mapped column is `source + (processed_col - start)`.
 
-Przykład: `.set X = 1000` i `r0 = X +` daje po podmianie `r0 = 1000 +`.
-Błąd w kolumnie 7 (w `1000`) jest raportowany jako kolumna 6 (w `X`), a
-kontekst pokazuje oryginalne `r0 = X +`.
+Example: `.set X = 1000` and `r0 = X +` produce `r0 = 1000 +` after
+substitution. An error at column 7 (in `1000`) is reported at column 6 (in `X`),
+and the context shows the original `r0 = X +`.
 
-## Wyświetlanie w CLI
+## CLI output
 
 ```text
 program.dasm:2:6: syntax error
@@ -103,15 +104,16 @@ r0 =
      ^
 ```
 
-- Ścieżka jest pokazywana względem bieżącego katalogu (`_display_path`).
-- Puste `line`/`col` dają `program.dasm::`.
-- Komunikaty trafiają na `stderr`, a kod wyjścia to `1`.
+- The path is shown relative to the current directory (`_display_path`).
+- Missing `line`/`col` values produce `program.dasm::`.
+- Messages are written to `stderr`, and the exit code is `1`.
 
-## Znane ograniczenia
+## Known limitations
 
-- Błędy resolvera symboli nie mają pozycji, ponieważ AST nie przechowuje jeszcze lokalizacji tych węzłów.
-- Błędy asemblacji (`Undefined label`, `Duplicate label`,
-  `Address out of range`) i błędy backendów nie przechodzą przez relokację —
-  są to wyjątki Pythona (`ValueError`, `NotImplementedError`, `AssertionError`).
-- `ColumnMap` nie jest tworzony dla linii `.set` (jest pusta), bo linia i tak
-  jest zastępowana pustą.
+- Symbol resolver errors do not have source positions because the AST does not
+  yet store the locations of these nodes.
+- Assembly errors (`Undefined label`, `Duplicate label`, `Address out of range`)
+  and backend errors do not go through source mapping; they are Python exceptions
+  (`ValueError`, `NotImplementedError`, `AssertionError`).
+- A `ColumnMap` is not created for `.set` lines (it is empty) because the line is
+  replaced with an empty line anyway.

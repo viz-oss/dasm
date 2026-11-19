@@ -1,46 +1,47 @@
-# Preprocesor: `.set` i stałe konfiguracyjne
+# Preprocessor: `.set` and configuration constants
 
-Preprocesor działa **przed parserem**, na tekście po rozwiązaniu `.import`
-(i przed mapowaniem błędów). Zamienia wybrane nazwy na wartości oraz usuwa
-linie `.set`, zachowując numerację linii.
+The preprocessor runs **before the parser**, on the text after `.import`
+resolution (and before error mapping). It replaces selected names with values
+and removes `.set` lines while preserving line numbering.
 
-## Składnia
+## Syntax
 
 ```asm
-.set NAZWA = 123
-.set KOLOR = 0xD020
-.set UJEMNA = -5
+.set NAME = 123
+.set COLOR = 0xD020
+.set NEGATIVE = -5
 .set BIN = 0b1010
 .set SEP = 1_000
-.set TEKST = "Hello\n"
+.set TEXT = "Hello\n"
 ```
 
-- Nazwa stałej to identyfikator: litery Unicode, cyfry, `_` i emoji; nie może
-  zaczynać się od cyfry ani nazywać się `rN`.
-- Wartość to liczba albo string w podwójnych cudzysłowach.
-- Liczby są parsowane jak w Pythonie z base 0: dziesiętne, `0x...`, `0b...`,
-  `0o...`, z `_` i znakiem `-`.
-- Stringi używają escape'ów Pythona (`\n`, `\"`, `\\`). Wynik jest z powrotem
-  wstawiany w formie JSON, czyli w podwójnych cudzysłowach.
-- `.set` musi być pierwszą znaczącą rzeczą w linii (poza spacjami/tabami).
+- A constant name is an identifier: Unicode letters, digits, `_`, and emoji; it
+  cannot start with a digit or be named `rN`.
+- A value is a number or a string in double quotes.
+- Numbers are parsed like Python numbers with base 0: decimal, `0x...`, `0b...`,
+  `0o...`, with `_` separators and an optional `-` sign.
+- Strings use Python escapes (`\n`, `\"`, `\\`). The result is inserted again in
+  JSON form, meaning in double quotes.
+- `.set` must be the first meaningful thing on a line (apart from spaces/tabs).
 
-## Jednoprzebiegowość
+## Single-pass behavior
 
-Stała musi być zdefiniowana **przed użyciem**. Preprocesor idzie od góry do
-dołu i nie robi wstępnego zbierania definicji:
+A constant must be defined **before it is used**. The preprocessor goes from
+top to bottom and does not collect definitions in advance:
 
 ```asm
-r0 = X          ; X nie jest jeszcze znane → pozostaje jako Ptr('X')
+r0 = X          ; X is not known yet → remains as Ptr('X')
 .set X = 1
 ```
 
-Użycie przed definicją nie jest błędem — po prostu nazwa zostaje nazwą
-(etykietą/adresem). Jeśli chcesz używać stałych w całym pliku, zdefiniuj je na
-początku albo w zaimportowanym pliku, który jest wklejany przed kodem.
+Using a constant before its definition is not an error; the name simply remains
+a name (a label/address). To use constants throughout a file, define them at the
+beginning or in an imported file that is inserted before the code.
 
-## Stałe z konfiguracji
+## Configuration constants
 
-Klucze z `[dasm.env]` w `*.toml` są dostępne jako stałe **od pierwszej linii**:
+Keys from `[dasm.env]` in `*.toml` are available as constants **from the first
+line**:
 
 ```toml
 [dasm.env]
@@ -52,88 +53,90 @@ VIC_BORDER = 0xD020
 r0 = VIC_BORDER
 ```
 
-Zasady:
+Rules:
 
-- konfiguracja **wygrywa** z `.set` o tej samej nazwie (wartość z TOML nie
-  zostanie nadpisana),
-- linia `.set` dla takiej nazwy jest nadal walidowana (nie może być błędna),
-- dozwolone są tylko `int` i `str`; `bool` jest odrzucany mimo dziedziczenia
-  po `int`,
-- nazwy kluczy są walidowane tak samo jak nazwy stałych.
+- Configuration **takes precedence** over a `.set` with the same name (the TOML
+  value is not overwritten).
+- A `.set` line for such a name is still validated (it must be valid).
+- Only `int` and `str` are allowed; `bool` is rejected even though it inherits
+  from `int`.
+- Key names are validated in the same way as constant names.
 
-Te same wartości `[dasm.env]` służą do rozwijania `{NAZWA}` w `.import` — patrz
+The same `[dasm.env]` values are used to expand `{NAME}` in `.import`; see
 [import.md](import.md).
 
-## Co jest podmieniane
+## What gets replaced
 
-Podmieniane są wyłącznie tokeny typu **name** (nazwy w kodzie). Nie są
-podmieniane:
+Only **name** tokens (names in the code) are replaced. These are not replaced:
 
-- komentarze (`;`, `#`, `//`),
-- stringi,
-- etykiety (`X:` to osobny token),
-- nazwy dyrektyw (`.set`, `.raw`, `.start`, ...).
+- comments (`;`, `#`, `//`),
+- strings,
+- labels (`X:` is a separate token),
+- directive names (`.set`, `.raw`, `.start`, ...).
 
 ```asm
 .set X = 1
-; X              ← komentarz, bez zmian
-// X             ← komentarz, bez zmian
-r0 = "X"         ← string, bez zmian
-X:               ← etykieta, bez zmian
-.raw("ascii") "X" ← string, bez zmian
-r0 = X           ← podmiana na 1
+; X              ← comment, unchanged
+// X             ← comment, unchanged
+r0 = "X"         ← string, unchanged
+X:               ← label, unchanged
+.raw("ascii") "X" ← string, unchanged
+r0 = X           ← replaced with 1
 ```
 
-## Numeracja linii i kolumn
+## Line numbering and columns
 
-Linia `.set` jest zastępowana **pustą linią**, więc numery linii w błędach
-parsera pozostają zgodne z plikiem źródłowym.
+A `.set` line is replaced with a **blank line**, so line numbers in parser errors
+continue to match the source file.
 
-`preprocess_with_map()` zwraca `PreprocessedSource(text, column_maps)`.
-Dla każdej linii powstaje `ColumnMap`, która mapuje kolumny po podmianie na
-oryginalne kolumny. Cała podstawiona wartość (np. `1000` za `X`) wskazuje na
-pierwszą kolumnę nazwy stałej. Dzięki temu błąd w `r0 = 1000 +` jest
-raportowany przy `X`, a kontekst pokazuje oryginalne `r0 = X +`.
+`preprocess_with_map()` returns `PreprocessedSource(text, column_maps)`.
+A `ColumnMap` is created for each line, mapping columns after substitution back
+to their original columns. The entire substituted value (for example, `1000`
+in place of `X`) points to the first column of the constant's name. This means
+an error in `r0 = 1000 +` is reported at `X`, and the context shows the original
+`r0 = X +`.
 
-Szczegóły: [errors.md](errors.md).
+Details: [errors.md](errors.md).
 
-## Błędy
+## Errors
 
-| Sytuacja | Komunikat |
+| Situation | Message |
 |---|---|
-| nazwa `rN` | `'r1' is reserved for registers` |
-| nieprawidłowa nazwa (np. z TOML) | `invalid constant name 'bad-name'` |
-| wartość nie jest liczbą/stringiem | `constant value must be a number or a string: 'abc'` |
-| zła liczba (np. `09`) | `invalid number '09'` |
-| zły string (np. `"\x"`) | `invalid string literal` |
-| brak nazwy/wartości | `expected: .set NAME = <number or string>` |
-| duplikat `.set` | `constant 'X' already defined` |
-| zły typ w TOML | `config constant 'X': expected int or string, got bool` |
+| name `rN` | `'r1' is reserved for registers` |
+| invalid name (for example, from TOML) | `invalid constant name 'bad-name'` |
+| value is not a number or string | `constant value must be a number or a string: 'abc'` |
+| invalid number (for example, `09`) | `invalid number '09'` |
+| invalid string (for example, `"\\x"`) | `invalid string literal` |
+| missing name/value | `expected: .set NAME = <number or string>` |
+| duplicate `.set` | `constant 'X' already defined` |
+| invalid TOML type | `config constant 'X': expected int or string, got bool` |
 
-## Decyzje projektowe
+## Design decisions
 
-- Stała musi być zdefiniowana przed użyciem; jeden przebieg z góry na dół.
-  Gdyby stałe miały działać w całym pliku niezależnie od kolejności, potrzebny
-  byłby przebieg zbierający `.set`, a potem drugi z podmianą.
-- Stałe nie mogą nazywać się `rN`, spójnie z regułą rejestrów.
-- `.set` zostawia pustą linię, żeby numery linii w błędach parsera się zgadzały.
-- Wartości liczbowe są normalizowane do postaci dziesiętnej: `0xFF` wraca do
-  tekstu jako `255`. Stringi wracają w formie JSON (podwójne cudzysłowy).
-- Kolumny po podmianie są korygowane przez `ColumnMap`.
+- A constant must be defined before it is used; preprocessing is a single
+  top-to-bottom pass. To make constants available throughout the file regardless
+  of order, the preprocessor would need one pass to collect `.set` definitions
+  and a second pass to substitute them.
+- Constants cannot be named `rN`, consistent with the register naming rule.
+- `.set` leaves a blank line so parser error line numbers remain accurate.
+- Numeric values are normalized to decimal: `0xFF` is returned to the text as
+  `255`. Strings are returned in JSON form (double quotes).
+- Columns after substitution are corrected through `ColumnMap`.
 
-## Otwarte kwestie
+## Open questions
 
-- **Stała użyta jako wywołanie.** `art()` to token `name`, więc stała `art`
-  zostałaby zamieniona i dałaby `1()` oraz mylący błąd składni. Warto dodać
-  wyjątek: jeśli następnym znaczącym tokenem jest `(`, zgłosić
+- **Constant used as a call.** `art()` is a `name` token, so the constant `art`
+  would be substituted, producing `1()` and a confusing syntax error. It may be
+  useful to add an exception: if the next meaningful token is `(`, report
   `constant used as a call`.
-- **Stała po lewej stronie.** `art = r0` po podmianie to `1 = r0`, czyli cichy
-  zapis pod adres 1. Może być zamierzone, ale łatwo o pomyłkę.
-- **Duplikacja reguł leksykalnych.** `_TOKEN_RE` w preprocesorze powtarza
-  fragmenty gramatyki (komentarze, stringi, `NAME`, `LABEL`). Zmiana składni
-  w jednym miejscu bez drugiego może rozjechać preprocesor i parser. Warto
-  wspólne stałe regexów albo test porównujący oba na tych samych przykładach.
-- **Kolizja nazwy stałej i etykiety.** Przy `.set art = 1` i etykiecie `art:`
-  etykieta zostaje (osobny token), ale `r0 = art` da `r0 = 1` zamiast adresu
-  etykiety. Wykrycie tego wymagałoby znajomości wszystkich etykiet, czyli
-  przebiegu wstępnego.
+- **Constant on the left-hand side.** After substitution, `art = r0` becomes
+  `1 = r0`, which silently writes to address 1. This may be intentional, but it
+  is easy to do by mistake.
+- **Duplicated lexical rules.** `_TOKEN_RE` in the preprocessor repeats parts of
+  the grammar (comments, strings, `NAME`, `LABEL`). Changing the syntax in one
+  place but not the other can make the preprocessor and parser disagree. Shared
+  regex constants or a test that compares both on the same examples may help.
+- **Constant name and label collision.** With `.set art = 1` and a label `art:`,
+  the label remains (it is a separate token), but `r0 = art` becomes `r0 = 1`
+  instead of the label's address. Detecting this would require knowing all labels
+  in advance, which means an extra pass.

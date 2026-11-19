@@ -1,38 +1,39 @@
 # WebAssembly (`wasm`)
 
-Backend WASM składa się z dwóch modułów:
+The WASM backend consists of two modules:
 
-- `arch/wasm.py` — generuje strumień opcodów jednej funkcji,
-- `format/wasm.py` — opakowuje strumień w kompletny moduł `.wasm`.
+- `arch/wasm.py` — generates an opcode stream for a single function.
+- `format/wasm.py` — wraps the stream in a complete `.wasm` module.
 
 ## Model
 
-- Cały program to **jedna funkcja** bez parametrów i bez wyniku (`() -> ()`).
-- Rejestr `rN` jest lokalem WASM o indeksie `N`.
-- Brak stosu wywołań, etykiet, skoków i danych statycznych.
-- Architektura zawsze dopisuje na końcu `end` (`0x0B`).
+- The entire program is **one function** with no parameters and no result (`() -> ()`).
+- Register `rN` is the WASM local with index `N`.
+- There is no call stack, labels, jumps, or static data.
+- The architecture always appends `end` (`0x0B`) at the end.
 - `word_size = 1`, `endian = 'little'`, `entry_jump_size = 0`.
 
-## Instrukcje architektury
+## Architecture instructions
 
-| Źródło | Emitowane opcody |
+| Source | Emitted opcodes |
 |---|---|
-| `rN = <liczba>` | `i32.const <sleb128>` + `local.set <uleb128 N>` |
+| `rN = <number>` | `i32.const <sleb128>` + `local.set <uleb128 N>` |
 | `rN = rM` | `local.get <uleb128 M>` + `local.set <uleb128 N>` |
-| `rN = <adres>` | `i32.const <adres>` + `i32.load 2 0` + `local.set N` |
-| `<adres> = rN` | `i32.const <adres>` + `local.get N` + `i32.store 2 0` |
+| `rN = <address>` | `i32.const <address>` + `i32.load 2 0` + `local.set N` |
+| `<address> = rN` | `i32.const <address>` + `local.get N` + `i32.store 2 0` |
 | `return` | `return` (`0x0F`) |
-| `return <liczba>` | `i32.const <liczba>` + `return` |
+| `return <number>` | `i32.const <number>` + `return` |
 | `.exit` | `return` |
 
-- `<adres>` musi być literałem liczbowym (`Ptr(Int(...))`), nie etykietą; adres
-  musi być nieujemny. Etykieta daje `NotImplementedError`.
-- `call` i `jmp` dają `NotImplementedError` (brak indeksów funkcji i skoków).
-- `memarg` jest stały: `align = 2`, `offset = 0`.
+- `<address>` must be a numeric literal (`Ptr(Int(...))`), not a label; the
+  address must be non-negative. A label raises `NotImplementedError`.
+- `call` and `jmp` raise `NotImplementedError` (function indices and jumps are
+  not supported).
+- `memarg` is fixed: `align = 2`, `offset = 0`.
 
-### Opcody używane przez architekturę
+### Opcodes used by the architecture
 
-| Stała | Wartość |
+| Constant | Value |
 |---|---|
 | `OP_END` | `0x0B` |
 | `OP_RETURN` | `0x0F` |
@@ -42,67 +43,67 @@ Backend WASM składa się z dwóch modułów:
 | `OP_I32_STORE` | `0x36` |
 | `OP_I32_CONST` | `0x41` |
 
-Liczby całkowite są kodowane jako LEB128: `uleb128()` dla nieujemnych,
-`sleb128()` dla znaków.
+Integers are encoded as LEB128: `uleb128()` for non-negative values and
+`sleb128()` for signed values.
 
-## Format modułu
+## Module format
 
 `FormatWasm.output(words)`:
 
-1. odrzuca `entry` inne niż `None`/`0`,
-2. skanuje strumień (`_scan`), aby znaleźć:
-   - największy indeks lokalu (`max_local`),
-   - użycie pamięci (`i32.load`/`i32.store`),
-   - czy strumień kończy się `end`,
-3. buduje sekcje:
-   - **type (1)**: jeden typ `() -> ()`,
-   - **function (3)**: jedna funkcja typu 0,
-   - **memory (5)**: tylko przy użyciu pamięci; `[min = memory_pages]`
-     bez maksimum,
-   - **export (7)**: funkcja `main` (indeks 0) oraz `memory` (indeks 0),
-     jeśli pamięć jest używana,
-   - **code (10)**: deklaracja `max_local + 1` lokali typu `i32`
-     (jedna grupa) + strumień opcodów.
+1. Rejects `entry` values other than `None` or `0`.
+2. Scans the stream (`_scan`) to find:
+   - the highest local index (`max_local`),
+   - whether memory is used (`i32.load`/`i32.store`),
+   - whether the stream ends with `end`.
+3. Builds the sections:
+   - **type (1)**: one `() -> ()` type,
+   - **function (3)**: one function of type 0,
+   - **memory (5)**: only when memory is used; `[min = memory_pages]` with no
+     maximum,
+   - **export (7)**: the `main` function (index 0) and, if memory is used, the
+     `memory` export (index 0),
+   - **code (10)**: a declaration for `max_local + 1` `i32` locals (one group)
+     followed by the opcode stream.
 
-Atrybuty klasy:
+Class attributes:
 
-| Atrybut | Domyślnie | Znaczenie |
+| Attribute | Default | Meaning |
 |---|---|---|
-| `ext` | `wasm` | rozszerzenie pliku |
-| `origin` | `0` | adres bazowy |
-| `entry_jump` | `False` | brak skoku wejściowego |
-| `memory_pages` | `1` | minimalna liczba stron pamięci (64 KiB) |
-| `export_name` | `main` | nazwa eksportowanej funkcji |
+| `ext` | `wasm` | file extension |
+| `origin` | `0` | base address |
+| `entry_jump` | `False` | no entry jump |
+| `memory_pages` | `1` | minimum number of memory pages (64 KiB) |
+| `export_name` | `main` | exported function name |
 
-### Skanowanie i obsługiwane opcody
+### Scanning and supported opcodes
 
-`_scan` akceptuje wyłącznie:
+`_scan` accepts only:
 
-| Opcode | Dodatkowe dane |
+| Opcode | Additional data |
 |---|---|
-| `0x00` (`unreachable`) | brak |
-| `0x0B` (`end`) | brak |
-| `0x0F` (`return`) | brak |
-| `0x10` (`call`) | `uleb128` indeks funkcji |
-| `0x20`, `0x21` (`local.get/set`) | `uleb128` indeks lokalu |
+| `0x00` (`unreachable`) | none |
+| `0x0B` (`end`) | none |
+| `0x0F` (`return`) | none |
+| `0x10` (`call`) | `uleb128` function index |
+| `0x20`, `0x21` (`local.get/set`) | `uleb128` local index |
 | `0x28`, `0x36` (`i32.load/store`) | `uleb128` align + `uleb128` offset |
-| `0x41` (`i32.const`) | `sleb128` wartość |
+| `0x41` (`i32.const`) | `sleb128` value |
 
-Inny opcode daje
+Any other opcode raises
 `ValueError: unsupported WASM opcode 0xXX at offset N`.
-Ucięte LEB128 daje `ValueError: unexpected end of WASM code`.
-Strumień bez końcowego `end` daje `ValueError: ... end opcode ...`.
+Truncated LEB128 data raises `ValueError: unexpected end of WASM code`.
+A stream without a final `end` raises `ValueError: ... end opcode ...`.
 
-## Przykłady
+## Examples
 
-Pusty program:
+An empty program:
 
 ```python
 arch.assembly([])  # [0x0B]
 ```
 
-Moduł ma sekcje `[1, 3, 7, 10]`; code section to `01 02 00 0B`
-(jedna funkcja, 2 bajty ciała: brak lokali + `end`).
+The module has sections `[1, 3, 7, 10]`; the code section is `01 02 00 0B`
+(one function, 2-byte body: no locals + `end`).
 
 `r0 = 1`:
 
@@ -111,7 +112,7 @@ arch.assembly([Mov(Reg(0), Int(1))])
 # [0x41, 0x01, 0x21, 0x00, 0x0B]
 ```
 
-Code section: `01 08 01 01 7F 41 01 21 00 0B` (jeden lokal `i32`, potem ciało).
+Code section: `01 08 01 01 7F 41 01 21 00 0B` (one `i32` local, then the body).
 
 `100 = r0`:
 
@@ -120,21 +121,21 @@ arch.assembly([Mov(Ptr(Int(100)), Reg(0))])
 # [0x41, 0xE4, 0x00, 0x20, 0x00, 0x36, 0x02, 0x00, 0x0B]
 ```
 
-Moduł dostaje sekcję memory `01 00 01` oraz eksport `memory`.
+The module gets a memory section `01 00 01` and a `memory` export.
 
-Pełny przykład z CLI:
+A complete CLI example:
 
 ```bash
 printf 'r0 = 1\n' > prog.dasm
 python3 dasm.py prog.dasm --arch wasm --format wasm
 ```
 
-## Ograniczenia
+## Limitations
 
-- Brak wywołań funkcji (`call`), skoków i etykiet.
-- Brak danych statycznych i sekcji data.
-- Tylko jeden typ funkcji i jedna funkcja.
-- Pamięć jest eksportowana, ale nie ma funkcji startowej poza `main`.
-- Brak obsługi wielu wyników, parametrów i typów innych niż `i32`.
-- `.start` działa tylko dla etykiety pod offsetem 0 (format odrzuca inne
-  `entry`).
+- No function calls (`call`), jumps, or labels.
+- No static data or data section.
+- Only one function type and one function.
+- Memory is exported, but there is no start function other than `main`.
+- No support for multiple results, parameters, or types other than `i32`.
+- `.start` works only for a label at offset 0 (the format rejects other
+  `entry` values).
