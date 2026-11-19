@@ -1,7 +1,0 @@
-.include 'sys/darwin/print'
-.include 'sys/darwin/exit'
-
-# Program entry
-main:
-    sys.log('Hello, World!\n')
-    sys.exit()
